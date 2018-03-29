@@ -1,6 +1,7 @@
 package car_service;
 import static spark.Spark.*;
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import org.json.*;
 import io.jsonwebtoken.*;
 import java.security.Key;
@@ -73,6 +74,10 @@ public class UserController {
 		try {
 			CarRenter cr = null;
 			JSONObject jsonObj = new JSONObject(request.body());
+			String driverLicense = jsonObj.getString("driverLicense");
+			String fn = jsonObj.getString("firstname");
+			String ln = jsonObj.getString("lastname");
+			String dob = jsonObj.getString("dob");
 			if (!fieldsRequiredExist(jsonObj)) {
 				return new StandardResponse(400, "Missing fields");
 			}
@@ -85,8 +90,11 @@ public class UserController {
 			else if (!User.containsDigit(jsonObj.getString("password") )) {
 				return new StandardResponse(400, "Password must contains digits");
 			}
+			else if(!verifyLicense(driverLicense,fn,ln,dob)) {
+				return new StandardResponse(400, "Cannot verify license");
+			}
 			else {
-				cr = new Gson().fromJson(request.body(), CarRenter.class);
+				cr = new GsonBuilder().setDateFormat("dd-MM-yyyy").create().fromJson(request.body(), CarRenter.class);
 				jc.insertUser(cr);
 			}
 		}
@@ -98,21 +106,30 @@ public class UserController {
 	
 	private boolean fieldsRequiredExist(JSONObject jsonObj) {
 		try {
-			JSONObject cc = jsonObj.getJSONObject("creditcard");
+			JSONObject cc = jsonObj.getJSONObject("creditCard");
 			if (jsonObj.getString("username").equals("") || jsonObj.getString("password").equals("") || 
 					jsonObj.getString("firstname").equals("") || 
 					jsonObj.getString("lastname").equals("") || 
 					jsonObj.getString("driverLicense").equals("") ||
+					jsonObj.getString("dob").equals("") || 
 					cc.getString("cardholder").equals("") ||
 					cc.getString("expirydate").equals("") ||
 					cc.getString("cardNumber").equals(""))
 				return false;
 		}
 		catch(JSONException e) {
-			System.out.println(e.getCause());
+			System.out.println(e.getMessage());
 			return false;
 		}
 		return true;
+	}
+	
+	private boolean verifyLicense(String license,String fn, String ln, String dob) {
+		try {
+			return jc.findLicense( license, fn,  ln,  dob);
+		} catch (SQLException e) {
+			return false;
+		}
 	}
 	
 	public String sign(String username, Date exp) {

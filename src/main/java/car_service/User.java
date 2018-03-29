@@ -1,15 +1,26 @@
 package car_service;
+
+import java.text.*;
+import java.util.*;
+
 public class User {
-	String username;
-	String password;
-	String firstname;
-	String lastname;
+	public static final String DATE_FORMAT = "dd-MM-yyyy";
+	protected String username;
+	protected String password;
+	protected String firstname;
+	protected String lastname;
+	protected Date dob;
 	
-	public User(String username, String password, String fn, String ln) {
+	public User(String username, String password, String fn, String ln, String dob) {
 		this.username = username;
 		this.password = password;
 		firstname = fn;
 		lastname = ln;
+		try {
+			this.dob = new SimpleDateFormat(DATE_FORMAT).parse(dob);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public String getUsername() {
@@ -30,6 +41,10 @@ public class User {
 	
 	public String getPassword() {
 		return password;
+	}
+	
+	public String getDOB() {
+		return new SimpleDateFormat(DATE_FORMAT).format(dob);
 	}
 	
 	public boolean setPassword (String newpw) {

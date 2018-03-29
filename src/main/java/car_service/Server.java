@@ -7,5 +7,4 @@ public class Server {
 		port(8080);
 		new UserController();
 	}
-
 }

@@ -42,6 +42,7 @@ public class JDBCConnector {
 		}
 	}*/
 	
+	// Query for existence of a username
 	public boolean usernameExists (String username) throws SQLException {
 		Statement statement = null;
 		String findUserSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'" + username + "\';";
@@ -69,23 +70,32 @@ public class JDBCConnector {
 		return exists;
 	}
 
-	public void insertUser(User user) throws SQLException {
+	// Insert a new user into the database
+	public void insertUser(CarRenter user) throws SQLException {
 		Statement statement = null;
 
-		String insertUserSQL = "INSERT INTO USER VALUES (\""
+		String insertUserSQL = "INSERT INTO USER VALUES (\'"
+				+ user.getUsername() + "\', \'"
+				+ user.getPassword() + "\', \'"
+				+ user.getFirstName() + "\', \'"
+				+ user.getLastName() + "\', "
+				+ "STR_TO_DATE(\'" + user.getDOB().toString() + "\', '%d-%m-%Y')"
+				+ ");";
+		String insertUserSQL2 = "INSERT INTO CARRENTER VALUES (\""
 				+ user.getUsername() + "\", \""
-				+ user.getPassword() + "\", \""
-				+ user.getFirstName() + "\", \""
-				+ user.getLastName()
-				+ "\")";
+				+ user.getDriverLicense() + "\", \""
+				+ user.getCardNumber()
+				+ "\");";
 
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			System.out.println(insertUserSQL);
+			System.out.println(insertUserSQL2);
                         // execute the SQL statement
 			statement.execute(insertUserSQL);
-			System.out.println("Table \"user\" is created!");
+			statement.execute(insertUserSQL2);
+			System.out.println("New user created");
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -99,6 +109,7 @@ public class JDBCConnector {
 		}
 	}
 	
+	// Query for login
 	public boolean findUsernameAndPassword(String username, String password) throws SQLException{
 		Statement statement = null;
 		String findUserSQL = "SELECT USERNAME,PASSWORD FROM USER WHERE USERNAME = \'"
@@ -110,6 +121,42 @@ public class JDBCConnector {
 			System.out.println(findUserSQL);
                         // execute the SQL statement
 			ResultSet rs = statement.executeQuery(findUserSQL);
+			if (rs.next()) {
+				exists = true;
+			}
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return exists;
+	}
+	
+	// Verify license
+	public boolean findLicense(String license,String fn, String ln, String dob) throws SQLException{
+		Statement statement = null;
+		String findLicenseSQL = "SELECT LICENSENUM FROM DRIVERLICENSE " 
+							+ "WHERE LICENSENUM = \'"
+							+ license + "\' AND "
+							+ "FIRSTNAME = \'"
+							+ fn + "\' AND "
+							+ "LASTNAME = \'"
+							+ ln + "\' AND "
+							+ "DATE_FORMAT(DOB,\'%d-%m-%Y\') = \'"
+							+ dob+  "\';";
+		boolean exists = false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(findLicenseSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(findLicenseSQL);
 			if (rs.next()) {
 				exists = true;
 			}

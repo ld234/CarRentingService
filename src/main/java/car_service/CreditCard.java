@@ -17,4 +17,16 @@ public class CreditCard {
 			e.printStackTrace();
 		}
 	}
+	
+	public String getCardNumber() {
+		return cardNumber;
+	}
+	
+	public String getCardholder() {
+		return cardholder;
+	}
+	
+	public String getDate() {
+		return new SimpleDateFormat(User.DATE_FORMAT).format(expiryDate);
+	}
 }
