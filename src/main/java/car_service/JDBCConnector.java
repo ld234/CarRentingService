@@ -1,5 +1,6 @@
 package car_service;
 import java.sql.*;
+import java.util.HashMap;
 
 public class JDBCConnector {
 
@@ -10,37 +11,6 @@ public class JDBCConnector {
 	private Connection dbConnection = null;
 	
 	public JDBCConnector() {}
-	
-/*	public void createDbUserTable() throws SQLException {
-		
-		Statement statement = null;
-		String createTableSQL = "CREATE TABLE USER("
-				+ "USERNAME VARCHAR(20) NOT NULL, "
-				+ "PASSWORD VARCHAR(100) NOT NULL, "
-				+ "FNAME VARCHAR(20) NOT NULL, " 
-				+ "LNAME VARCHAR(20) NOT NULL,"
-				+ "CONSTRAINT USER_PK PRIMARY KEY (USERNAME) "
-				+ ")";
-
-		try {
-			connect();
-			statement = dbConnection.createStatement();
-			System.out.println(createTableSQL);
-                        // execute the SQL statement
-			statement.execute(createTableSQL);
-			System.out.println("Table \"user\" is created!");
-
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-		} finally {
-			if (statement != null) {
-				statement.close();
-			}
-			if (dbConnection != null) {
-				dbConnection.close();
-			}
-		}
-	}*/
 	
 	// Query for existence of a username
 	public boolean usernameExists (String username) throws SQLException {
@@ -172,6 +142,75 @@ public class JDBCConnector {
 			}
 		}
 		return exists;
+	}
+	
+	// Query for verification of credit card with third party
+	public boolean findCreditCard(String cardNum, String cardholder, String expiryDate) throws SQLException{
+		Statement statement = null;
+		String findLicenseSQL = "SELECT CARDNUMBER FROM CREDITCARD " 
+							+ "WHERE CARDNUMBER = \'"
+							+ cardNum + "\' AND "
+							+ "CARDHOLDER = \'"
+							+ cardholder + "\' AND "
+							+ "DATE_FORMAT(EXPIRYDATE,\'%d-%m-%Y\') = \'"
+							+ expiryDate +  "\';";
+		boolean exists = false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(findLicenseSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(findLicenseSQL);
+			if (rs.next()) {
+				exists = true;
+			}
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return exists;
+	}
+	
+	public void updateUser(HashMap<String,String> hm, String username ) throws SQLException{
+		Statement statement = null;
+		int sz = hm.keySet().size();
+		String updateUserSQL = "UPDATE USER SET ";
+		String [] keys = new String[sz];
+		keys = hm.keySet().toArray(keys);
+		for (int i = 0; i <  sz; i++) {
+				updateUserSQL+= keys[i]	+  " = \'" + hm.get(keys[i]) + "\'";
+				if (i < sz) {
+					updateUserSQL+= " AND ";
+				}
+				
+		}
+	updateUserSQL += "WHERE USERNAME = \'"+ username + "\';";
+
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(updateUserSQL);
+                        // execute the SQL statement
+			statement.execute(updateUserSQL);
+			System.out.println("New user created");
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
 	}
 	
 	private void connect() {

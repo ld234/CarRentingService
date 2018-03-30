@@ -1,7 +1,5 @@
 package car_service;
 
-import org.json.*;
-
 public class StandardResponse {
 	  
     private int statusCode;
@@ -24,6 +22,10 @@ public class StandardResponse {
      
     public int getStatusCode() {
     	return statusCode;
+    }
+    
+    public String getMessage() {
+    	return message;
     }
     
     public String getData() {
