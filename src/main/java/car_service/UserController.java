@@ -19,11 +19,9 @@ import spark.*;
 public class UserController {
 	private JDBCConnector jc;
 	private Key key;
-	private String subject;
 	
-	public UserController() {
-		subject = null;
-		jc = new JDBCConnector();
+	public UserController(JDBCConnector jc) {
+		this.jc = jc;
 		//key = MacProvider.generateKey();
 		byte[] bytes = new String("ServerSecret").getBytes();
 		key = new SecretKeySpec(bytes,"HS512");
@@ -41,22 +39,28 @@ public class UserController {
 			response.type("application/json");
 			StandardResponse res = login(request);
 			response.status(res.getStatusCode());
-			String resp = "{\"statusCode\" :" + res.getStatusCode() + ", " + res.getData() + "}";
+			String resp = "";
+			if (res.getStatusCode() == 200)
+				resp = "{\"statusCode\" :" + res.getStatusCode() + ", " + res.getData() + "}";
+			else {
+				resp = JsonUtil.toJson(res);
+			}
 			return resp;
 		});
 		
+		// Route for update user password
 		put("/account", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = update(request);
-			return res;
+			return JsonUtil.toJson(res);
 		});
 		
-		post("/verify", (request, response) -> {
+		/*post("/verify", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = verify(request);
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res);
-		});
+		}); */
 	}
 	
 	// Login
@@ -68,18 +72,20 @@ public class UserController {
 		String password = jsonObj.getString("password");
 		try {
 			if (jc.findUsernameAndPassword(username,password)) {
+				System.out.println("Found username and password");
 				Date newDate = new Date();
 				// Session expires after 30 mins
 				newDate.setTime(newDate.getTime() + 900000);
 				String data = "\"token\": \"" + sign(username, newDate)+ "\""; 
-				System.out.println(data);
-				return new StandardResponse(200, data,true);
+				return new StandardResponse(200, data, true);
+			}
+			else {
+				return new StandardResponse(400, "Incorrect username of password");
 			}
 		}
 		catch (SQLException e) {
 			return new StandardResponse(500, e.getMessage());
 		}
-		return new StandardResponse(400, "Incorrect username or password");
 	}
 	
 	private StandardResponse register(Request request) {
@@ -126,24 +132,38 @@ public class UserController {
 	
 	private StandardResponse update(Request request) {
 		JSONObject jsObj =  new JSONObject(request.body());
-		
-		HashMap <String,String> hm = new HashMap<String,String>();
-		if (!User.containsDigit(jsObj.getString("password")))
+		String subject ="";
+		//CarRenter cr;
+		if (verify(request).getStatusCode() != 200) {
+			return verify(request);
+		}
+		else {
+			subject = new JSONObject(verify(request).getData()).getString("subject");
+			/*try {
+				cr = (CarRenter) jc.getUser(subject);
+			} catch (SQLException e) {
+				return new StandardResponse(500);
+			}*/
+		}
+		if (!User.containsDigit(jsObj.getString("password"))) {
 			return new StandardResponse(400,"Password must contain digits");
+		}
 		else if(jsObj.getString("password").length() < 8) {
 			return new StandardResponse(400,"Password too short");
 		}
-		else {		
+		else {
 			try {
 				jsObj.put("password", hashPassword(jsObj.getString("password")));
-				jc.updateUser(hm,subject);
+				//cr.setPassword(jsObj.getString("password"));
+				jc.updateUser(jsObj,subject);
 			} catch (SQLException e) {
-				return new StandardResponse(400,"Cannot update.");
+				return new StandardResponse(400, "Cannot update.");
 			}
 		}
 		return new StandardResponse(200);
 	}
 	
+	// Check register process - all fields are required
 	private boolean fieldsRequiredExist(JSONObject jsonObj) {
 		try {
 			JSONObject cc = jsonObj.getJSONObject("creditCard");
@@ -180,6 +200,7 @@ public class UserController {
 		}
 	}
 	
+	// Create token
 	private String sign(String username, Date exp) {
 		String compactJws = Jwts.builder()
 		  .setExpiration(exp)
@@ -189,22 +210,27 @@ public class UserController {
 		return compactJws;
 	}
 	
+	// Verify token
 	private StandardResponse verify (Request request ){
+		String sub = "";
 		String compactJws = request.headers("x-access-token");
 		try {
-		    String sub = Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody().getSubject();
-		    System.out.println(sub);
-		    subject = sub;
+		    sub = Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody().getSubject();
+		    System.out.println("Subject" + sub);
 		} 
 		catch (SignatureException e) {
-		   return new StandardResponse(401, "Fail to authenticate.");
+		   return new StandardResponse(401, "Fail to authenticate");
 		}
 		catch (ExpiredJwtException e) {
 			return new StandardResponse(400,"Session has expired");
 		}
-		return new StandardResponse(200,"Verified");
+		catch (MalformedJwtException e) {
+			return new StandardResponse(401,"Not authorised");
+		}
+		return new StandardResponse(200,"{\"subject\" : \"" + sub + "\"}",true);
 	}
 	
+	// Hash user password - without salt!!!
 	private String hashPassword(String password) {
 		String sha256hex = Hashing.sha256()
 				  .hashString(password, StandardCharsets.UTF_8)

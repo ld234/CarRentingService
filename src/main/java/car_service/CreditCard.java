@@ -8,14 +8,10 @@ public class CreditCard {
 	String cardholder;
 	Date expiryDate;
 	
-	public CreditCard(String cardNumber, String cardholder, String date){
+	public CreditCard(String cardNumber, String cardholder, Date date){
 		this.cardNumber = cardNumber;
 		this.cardholder = cardholder;
-		try {
-			this.expiryDate = new SimpleDateFormat().parse(date);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		this.expiryDate = date;
 	}
 	
 	public String getCardNumber() {

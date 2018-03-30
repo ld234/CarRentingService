@@ -5,7 +5,8 @@ public class Server {
 
 	public static void main(String[] argv) {
 		port(8080);
-		new UserController();
+		JDBCConnector jc = new JDBCConnector();
+		new UserController(jc);
 	}
 }
  

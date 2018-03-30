@@ -1,11 +1,14 @@
 package car_service;
 import java.sql.*;
-import java.util.HashMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+import org.json.JSONObject;
 
 public class JDBCConnector {
 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -79,7 +82,7 @@ public class JDBCConnector {
 		}
 	}
 	
-	// Query for login
+	// Query for login - whether username exists
 	public boolean findUsernameAndPassword(String username, String password) throws SQLException{
 		Statement statement = null;
 		String findUserSQL = "SELECT USERNAME,PASSWORD FROM USER WHERE USERNAME = \'"
@@ -120,14 +123,18 @@ public class JDBCConnector {
 							+ ln + "\' AND "
 							+ "DATE_FORMAT(DOB,\'%d-%m-%Y\') = \'"
 							+ dob+  "\';";
+		String findLicenseExist = "SELECT LICENSENUM FROM CARRENTER " 
+				+ "WHERE LICENSENUM = \'"
+				+ license +  "\';";
 		boolean exists = false;
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			System.out.println(findLicenseSQL);
                         // execute the SQL statement
-			ResultSet rs = statement.executeQuery(findLicenseSQL);
-			if (rs.next()) {
+			boolean valid = statement.executeQuery(findLicenseSQL).next();
+			boolean duplicate = statement.executeQuery(findLicenseExist).next();
+			if (valid && !duplicate) {
 				exists = true;
 			}
 
@@ -178,20 +185,23 @@ public class JDBCConnector {
 		return exists;
 	}
 	
-	public void updateUser(HashMap<String,String> hm, String username ) throws SQLException{
+	// Update user details
+	public void updateUser(JSONObject jsObj, String username ) throws SQLException{
 		Statement statement = null;
-		int sz = hm.keySet().size();
+		System.out.println(jsObj.toString());
+		int sz = jsObj.keySet().size();
 		String updateUserSQL = "UPDATE USER SET ";
 		String [] keys = new String[sz];
-		keys = hm.keySet().toArray(keys);
-		for (int i = 0; i <  sz; i++) {
-				updateUserSQL+= keys[i]	+  " = \'" + hm.get(keys[i]) + "\'";
-				if (i < sz) {
+		keys = jsObj.keySet().toArray(keys);
+		System.out.println(keys[0]);
+		for (int i = 0; i < sz; i++) {
+				updateUserSQL+= keys[i]	+  " = \'" + jsObj.get(keys[i]) + "\'";
+				if (i < sz-1) {
 					updateUserSQL+= " AND ";
 				}
 				
 		}
-	updateUserSQL += "WHERE USERNAME = \'"+ username + "\';";
+		updateUserSQL += " WHERE USERNAME = \'"+ username + "\';";
 
 		try {
 			connect();
@@ -199,7 +209,7 @@ public class JDBCConnector {
 			System.out.println(updateUserSQL);
                         // execute the SQL statement
 			statement.execute(updateUserSQL);
-			System.out.println("New user created");
+			System.out.println("Password updated");
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -211,6 +221,65 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
+	}
+	
+	// Get user details
+	public User getUser(String username) throws SQLException {
+		Statement statement = null;
+		String findUserSQL = "SELECT * FROM USER U JOIN CARRENTER C ON U.USERNAME = C.USERNAME WHERE U.USERNAME = \'"
+							+ username + "\';";
+		
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(findUserSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(findUserSQL);
+			rs.next();
+			CreditCard cc = getCreditCard(rs.getString("CARDNUMBER"));
+			return new CarRenter(rs.getString(1),rs.getString("PASSWORD"),rs.getString("FIRSTNAME"),rs.getString("LASTNAME"),rs.getString("LICENSENUM"), rs.getString("DOB"),cc);
+			
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} catch(Exception e) {
+			System.out.println(e.getMessage());
+		}finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return null;
+	}
+	
+	// Get credit card details
+	public CreditCard getCreditCard(String cardNum) throws SQLException{
+		Statement statement = null;
+		String findUserSQL = "SELECT * FROM CREDITCARD WHERE CARDNUMBER = \'"
+							+ cardNum + "\';";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(findUserSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(findUserSQL);
+			rs.next();
+			return new CreditCard(rs.getString("CARDNUMBER"),rs.getString("CARDHOLDER"),new SimpleDateFormat("yyyy-mm-dd").parse(rs.getString("EXPIRYDATE")));
+		} catch (SQLException e) {
+			return null;
+		} catch (ParseException e) {
+			e.printStackTrace();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return null;
 	}
 	
 	private void connect() {
