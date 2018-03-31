@@ -151,6 +151,34 @@ public class JDBCConnector {
 		return exists;
 	}
 	
+	public boolean findCarOwner(String username) throws SQLException{
+		Statement statement = null;
+		String findCarOwnerSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'"
+							+ username +  "\';";
+		boolean exists = false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(findCarOwnerSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(findCarOwnerSQL);
+			if (rs.next()) {
+				exists = true;
+			}
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return exists;
+	}
+	
 	// Query for verification of credit card with third party
 	public boolean findCreditCard(String cardNum, String cardholder, String expiryDate) throws SQLException{
 		Statement statement = null;
@@ -197,9 +225,8 @@ public class JDBCConnector {
 		for (int i = 0; i < sz; i++) {
 				updateUserSQL+= keys[i]	+  " = \'" + jsObj.get(keys[i]) + "\'";
 				if (i < sz-1) {
-					updateUserSQL+= " AND ";
+					updateUserSQL+= ", ";
 				}
-				
 		}
 		updateUserSQL += " WHERE USERNAME = \'"+ username + "\';";
 

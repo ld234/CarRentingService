@@ -63,4 +63,12 @@ public class User {
 		}
 		return false;
 	}
+	
+	public boolean equals(User other) {
+		return this.getUsername().equals(other.getUsername());
+	}
+	
+	public int hashCode(){
+	    return username.hashCode();
+	}
 }

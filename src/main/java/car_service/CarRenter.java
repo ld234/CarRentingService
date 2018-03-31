@@ -18,6 +18,10 @@ public class CarRenter extends User{
 		return creditCard.getCardNumber();
 	}
 	
+	public CreditCard getCard() {
+		return creditCard;
+	}
+	
 	public String getExpiryDate() {
 		return creditCard.getDate();
 	}

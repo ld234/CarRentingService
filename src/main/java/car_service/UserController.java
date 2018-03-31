@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.sql.SQLException;
 import java.util.*;
+//import java.util.concurrent.TimeUnit;
 
 import javax.crypto.spec.SecretKeySpec;
 
@@ -19,15 +20,17 @@ import spark.*;
 public class UserController {
 	private JDBCConnector jc;
 	private Key key;
+	private HashMap<String,Session> connectedUsers;
 	
 	public UserController(JDBCConnector jc) {
 		this.jc = jc;
 		//key = MacProvider.generateKey();
 		byte[] bytes = new String("ServerSecret").getBytes();
 		key = new SecretKeySpec(bytes,"HS512");
-		
+		connectedUsers = new HashMap<String,Session>();
 		// Route for registration
 		post("/account", (request, response) -> {
+			//TimeUnit.SECONDS.sleep(30);
 			response.type("application/json");
             StandardResponse send = register(request);
             response.status(send.getStatusCode());
@@ -76,7 +79,13 @@ public class UserController {
 				Date newDate = new Date();
 				// Session expires after 30 mins
 				newDate.setTime(newDate.getTime() + 900000);
-				String data = "\"token\": \"" + sign(username, newDate)+ "\""; 
+				String data = "\"token\": \"" + sign(username, newDate)+ "\"";
+				CarRenter cr = (CarRenter) jc.getUser(username);
+				connectedUsers.put(cr.getUsername(),getSession(cr));
+				if (jc.findCarOwner(username)) {
+					// CarOwner cr = jc.getUser(username);
+					// Get Carlistings
+				}
 				return new StandardResponse(200, data, true);
 			}
 			else {
@@ -133,17 +142,11 @@ public class UserController {
 	private StandardResponse update(Request request) {
 		JSONObject jsObj =  new JSONObject(request.body());
 		String subject ="";
-		//CarRenter cr;
 		if (verify(request).getStatusCode() != 200) {
 			return verify(request);
 		}
 		else {
 			subject = new JSONObject(verify(request).getData()).getString("subject");
-			/*try {
-				cr = (CarRenter) jc.getUser(subject);
-			} catch (SQLException e) {
-				return new StandardResponse(500);
-			}*/
 		}
 		if (!User.containsDigit(jsObj.getString("password"))) {
 			return new StandardResponse(400,"Password must contain digits");
@@ -153,8 +156,17 @@ public class UserController {
 		}
 		else {
 			try {
-				jsObj.put("password", hashPassword(jsObj.getString("password")));
-				//cr.setPassword(jsObj.getString("password"));
+				String newpw = hashPassword(jsObj.getString("password"));
+				jsObj.put("password", newpw);
+				Session s = connectedUsers.get(subject);
+				if (s == null) {
+					connectedUsers.put(subject, getSession(jc.getUser(subject)));
+					s = connectedUsers.get(subject);
+					//return new StandardResponse(400, "Cannot update.");
+				}
+				s.getUser().setPassword(newpw);
+				connectedUsers.put(subject, s);
+				System.out.println(connectedUsers.get(subject).getUser().getFirstName() + " " + connectedUsers.get(subject).getUser().getPassword());
 				jc.updateUser(jsObj,subject);
 			} catch (SQLException e) {
 				return new StandardResponse(400, "Cannot update.");
@@ -227,6 +239,9 @@ public class UserController {
 		catch (MalformedJwtException e) {
 			return new StandardResponse(401,"Not authorised");
 		}
+		catch (IllegalArgumentException e) {
+			return new StandardResponse(401,"Not authorised");
+		}
 		return new StandardResponse(200,"{\"subject\" : \"" + sub + "\"}",true);
 	}
 	
@@ -236,6 +251,10 @@ public class UserController {
 				  .hashString(password, StandardCharsets.UTF_8)
 				  .toString();
 		return sha256hex;
+	}
+	
+	private Session getSession(User u) {
+		return new Session (u);
 	}
 }
 	
