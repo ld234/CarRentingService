@@ -54,11 +54,45 @@ public class UserController {
 			return resp;
 		});
 		
+		
+		
 		// Route for update user password
 		put("/account", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = update(request);
 			return JsonUtil.toJson(res);
+		});
+
+		get("/account", (req, res) -> {
+			res.type("application/json");
+			StandardResponse verifyRes = verify(req);
+			System.out.println("Get data verify " + verifyRes.getData());
+			res.status(verifyRes.getStatusCode());
+			if (verifyRes.getStatusCode() != 200) {
+				return verifyRes;
+			}
+			String username = new JSONObject(verifyRes.getData()).getString("subject");
+			Session s = connectedUsers.get(username);
+			if (s == null) {
+				connectedUsers.put(username, createSession(username));
+				s = connectedUsers.get(username);
+			}
+			User thisUser = s.getUser();	
+			String type = "";
+			String className = thisUser.getClass().getSimpleName();
+			if (className.equals("CarOwner")) {
+				type = "carOwner";
+			}
+			else if (className.equals("CarRenter")) {
+				type = "carRenter";
+			}
+			else {
+				type = "admin";
+			}			
+			Map<String, String> additionalProps = new HashMap<String, String>();
+			additionalProps.put("type", type);
+			String resp = JsonUtil.toJson(thisUser, new UserExclusionStrategy(), additionalProps);
+			return resp;
 		});
 		
 		/*post("/verify", (request, response) -> {
