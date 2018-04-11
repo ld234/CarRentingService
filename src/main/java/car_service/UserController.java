@@ -69,7 +69,7 @@ public class UserController {
 			System.out.println("Get data verify " + verifyRes.getData());
 			res.status(verifyRes.getStatusCode());
 			if (verifyRes.getStatusCode() != 200) {
-				return verifyRes;
+				return JsonUtil.toJson(verifyRes);
 			}
 			String username = new JSONObject(verifyRes.getData()).getString("subject");
 			Session s = connectedUsers.get(username);
@@ -91,6 +91,7 @@ public class UserController {
 			}			
 			Map<String, String> additionalProps = new HashMap<String, String>();
 			additionalProps.put("type", type);
+			additionalProps.put("username", username);
 			String resp = JsonUtil.toJson(thisUser, new UserExclusionStrategy(), additionalProps);
 			return resp;
 		});
