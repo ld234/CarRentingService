@@ -37,7 +37,11 @@ public class UserController {
 			response.type("application/json");
             StandardResponse send = register(request);
             response.status(send.getStatusCode());
-            return JsonUtil.toJson(send);
+			// return JsonUtil.toJson(send);
+			if (send.getStatusCode() != 200) {
+				return JsonUtil.toJson(send);
+			}
+			return "{\"statusCode\" :" + send.getStatusCode() + ", " + send.getData() + "}";
         });
 		
 		// Route for login
@@ -131,6 +135,7 @@ public class UserController {
 	}
 	
 	private StandardResponse register(Request request) {
+		String data = "";
 		try {
 			CarRenter cr = null;
 			JSONObject jsonObj = new JSONObject(request.body());
@@ -138,6 +143,7 @@ public class UserController {
 			if (!fieldsRequiredExist(jsonObj)) {
 				return new StandardResponse(400, "Missing fields");
 			}
+			String username = jsonObj.getString("username");
 			String driverLicense = jsonObj.getString("driverLicense");
 			String fn = jsonObj.getString("firstname");
 			String ln = jsonObj.getString("lastname");
@@ -146,7 +152,7 @@ public class UserController {
 			String cardholder = cc.getString("cardholder");
 			String exp = cc.getString("expiryDate");
 			String cardNum = cc.getString("cardNumber");
-			if (jc.usernameExists(jsonObj.getString("username"))) {
+			if (jc.usernameExists(username)) {
 				return new StandardResponse(400, "Username exists");
 			}
 			else if (jsonObj.getString("password").length() < 8 ) {
@@ -165,12 +171,18 @@ public class UserController {
 				jsonObj.put("password", hashPassword(jsonObj.getString("password")));
 				cr = new GsonBuilder().setDateFormat("dd-MM-yyyy").create().fromJson(jsonObj.toString(), CarRenter.class);
 				jc.insertUser(cr);
+				Date newDate = new Date();
+				// Session expires after 5 mins
+				newDate.setTime(newDate.getTime() + SESSION_DURATION);
+				data = "\"token\": \"" + sign(username, newDate) + "\"";
+				// data = sign(username, newDate);
+				connectedUsers.put(username, createSession(username));
 			}
 		}
 		catch(SQLException e){
 			return new StandardResponse(500, e.getMessage());
 		}
-		return new StandardResponse(200);
+		return new StandardResponse(200, data, true);
 	}
 	
 	private StandardResponse update(Request request) {
