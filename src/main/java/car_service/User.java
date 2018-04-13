@@ -2,6 +2,8 @@ package car_service;
 
 import java.text.*;
 import java.util.*;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 
 public class User {
 	public static final String DATE_FORMAT = "dd-MM-yyyy";
@@ -70,5 +72,18 @@ public class User {
 	
 	public int hashCode(){
 	    return username.hashCode();
+	}
+}
+class UserExclusionStrategy implements ExclusionStrategy {
+
+	@Override
+	public boolean shouldSkipField(FieldAttributes f) {
+		String[] inclusionList = {"firstname", "lastname", "dob"};
+		return !Arrays.asList(inclusionList).contains(f.getName());
+	}
+
+	@Override
+	public boolean shouldSkipClass(Class<?> c) {
+		return false;
 	}
 }
