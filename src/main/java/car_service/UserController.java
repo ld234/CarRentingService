@@ -37,7 +37,11 @@ public class UserController {
 			response.type("application/json");
             StandardResponse send = register(request);
             response.status(send.getStatusCode());
-            return JsonUtil.toJson(send);
+			// return JsonUtil.toJson(send);
+			if (send.getStatusCode() != 200) {
+				return JsonUtil.toJson(send);
+			}
+			return "{\"statusCode\" :" + send.getStatusCode() + ", " + send.getData() + "}";
         });
 		
 		// Route for login
@@ -55,11 +59,46 @@ public class UserController {
 			return resp;
 		});
 		
+		
+		
 		// Route for update user password
 		put("/account", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = update(request);
 			return JsonUtil.toJson(res);
+		});
+
+		get("/account", (req, res) -> {
+			res.type("application/json");
+			StandardResponse verifyRes = verify(req);
+			System.out.println("Get data verify " + verifyRes.getData());
+			res.status(verifyRes.getStatusCode());
+			if (verifyRes.getStatusCode() != 200) {
+				return JsonUtil.toJson(verifyRes);
+			}
+			String username = new JSONObject(verifyRes.getData()).getString("subject");
+			Session s = connectedUsers.get(username);
+			if (s == null) {
+				connectedUsers.put(username, createSession(username));
+				s = connectedUsers.get(username);
+			}
+			User thisUser = s.getUser();	
+			String type = "";
+			String className = thisUser.getClass().getSimpleName();
+			if (className.equals("CarOwner")) {
+				type = "carOwner";
+			}
+			else if (className.equals("CarRenter")) {
+				type = "carRenter";
+			}
+			else {
+				type = "admin";
+			}			
+			Map<String, String> additionalProps = new HashMap<String, String>();
+			additionalProps.put("type", type);
+			additionalProps.put("username", username);
+			String resp = JsonUtil.toJson(thisUser, new UserExclusionStrategy(), additionalProps);
+			return resp;
 		});
 		
 		/*post("/verify", (request, response) -> {
@@ -98,6 +137,7 @@ public class UserController {
 	}
 	
 	private StandardResponse register(Request request) {
+		String data = "";
 		try {
 			CarRenter cr = null;
 			JSONObject jsonObj = new JSONObject(request.body());
@@ -105,6 +145,7 @@ public class UserController {
 			if (!fieldsRequiredExist(jsonObj)) {
 				return new StandardResponse(400, "Missing fields");
 			}
+			String username = jsonObj.getString("username");
 			String driverLicense = jsonObj.getString("driverLicense");
 			String fn = jsonObj.getString("firstname");
 			String ln = jsonObj.getString("lastname");
@@ -113,7 +154,7 @@ public class UserController {
 			String cardholder = cc.getString("cardholder");
 			String exp = cc.getString("expiryDate");
 			String cardNum = cc.getString("cardNumber");
-			if (jc.usernameExists(jsonObj.getString("username"))) {
+			if (jc.usernameExists(username)) {
 				return new StandardResponse(400, "Username exists");
 			}
 			else if (jsonObj.getString("password").length() < 8 ) {
@@ -132,12 +173,18 @@ public class UserController {
 				jsonObj.put("password", hashPassword(jsonObj.getString("password")));
 				cr = new GsonBuilder().setDateFormat("dd-MM-yyyy").create().fromJson(jsonObj.toString(), CarRenter.class);
 				jc.insertUser(cr);
+				Date newDate = new Date();
+				// Session expires after 5 mins
+				newDate.setTime(newDate.getTime() + SESSION_DURATION);
+				data = "\"token\": \"" + sign(username, newDate) + "\"";
+				// data = sign(username, newDate);
+				connectedUsers.put(username, createSession(username));
 			}
 		}
 		catch(SQLException e){
 			return new StandardResponse(500, e.getMessage());
 		}
-		return new StandardResponse(200);
+		return new StandardResponse(200, data, true);
 	}
 	
 	private StandardResponse update(Request request) {
