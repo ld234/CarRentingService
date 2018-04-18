@@ -1,10 +1,11 @@
 package car_service;
 
-import java.io.File;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import com.google.gson.annotations.SerializedName;
+import java.util.List;
+
 
 public class CarListing {
 	private long listingNumber;
@@ -25,11 +26,11 @@ public class CarListing {
 	private double totalPrice;
 	private int rating;
 	private String img;
-	HashMap<Date,String > unavailable;
+	HashMap<LocalDate,String > unavailable;
 	HashMap<Date,String > Brands;
 	
 	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath) {
-		unavailable = new HashMap<Date, String>();
+		unavailable = new HashMap<LocalDate, String>();
 		listingNumber = carListingNum;
 		this.rego= rego;
 		this.brand= brand;
@@ -102,21 +103,21 @@ public class CarListing {
 		}
 	}
 	
-	public boolean bookCarListing( String username,Date[] dates) {
+	public boolean bookCarListing( String username,List<LocalDate> dates) {
 		
 		boolean returnVal = true;
 		
 		//Checks if booking is valid
-		for(int i = 0; i< dates.length; i++)
+		for(int i = 0; i< dates.size(); i++)
 		{
-			if(unavailable.containsKey(dates[i])) {
+			if(unavailable.containsKey(dates.get(i))) {
 				return false;
 			}
 		}
 		//books carlisting on the given dates
-		for(int i = 0; i< dates.length; i++)
+		for(int i = 0; i< dates.size(); i++)
 		{
-			unavailable.put(dates[i],username);
+			unavailable.put(dates.get(i),username);
 		}
 		
 		/*
@@ -181,12 +182,10 @@ public class CarListing {
 	
 	//for testing*************************************************************
 	public void showBooking() {
-		Iterator it = unavailable.entrySet().iterator();
+		Iterator<HashMap.Entry<LocalDate, String>> it = unavailable.entrySet().iterator();
 	    while (it.hasNext()) {
-	        HashMap.Entry pair = (HashMap.Entry)it.next();
+	        HashMap.Entry<LocalDate, String> pair = it.next();
 	        System.out.println(pair.getKey() + " = " + pair.getValue());
 	    }
 	}
-	
-	
 }

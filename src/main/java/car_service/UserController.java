@@ -51,6 +51,7 @@ public class UserController {
 			else {
 				resp = JsonUtil.toJson(res);
 			}
+			System.out.println(resp);
 			return resp;
 		});
 		
@@ -77,13 +78,14 @@ public class UserController {
 		jsonObj.put("password", hashPassword(jsonObj.getString("password")));
 		String password = jsonObj.getString("password");
 		try {
-			if (jc.findUsernameAndPassword(username,password)) {
+			String userType = jc.findUsernameAndPassword(username,password);
+			if (userType != null) {
 				System.out.println("Found username and password");
 				Date newDate = new Date();
-				// Session expires after 5 mins
+				// Session expires after 10 mins
 				newDate.setTime(newDate.getTime() + SESSION_DURATION);
-				String data = "\"token\": \"" + sign(username, newDate)+ "\"";
 				connectedUsers.put(username,createSession(username));
+				String data = "\"token\": \"" + sign(username, newDate)+ "\"," + "\"type\":\""+ userType+"\", \"fullname\":\""+ connectedUsers.get(username).getUser().getFullName()+ "\"";
 				return new StandardResponse(200, data, true);
 			}
 			else {

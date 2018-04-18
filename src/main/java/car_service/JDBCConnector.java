@@ -22,7 +22,7 @@ public class JDBCConnector {
 			e.printStackTrace();
 		}
 	}
-	
+
 	// Query for existence of a username
 	public boolean usernameExists (String username) throws SQLException {
 		Statement statement = null;
@@ -59,7 +59,8 @@ public class JDBCConnector {
 				+ user.getPassword() + "\', \'"
 				+ user.getFirstName() + "\', \'"
 				+ user.getLastName() + "\', "
-				+ "STR_TO_DATE(\'" + user.getDOB().toString() + "\', '%d-%m-%Y')"
+				+ "STR_TO_DATE(\'" + user.getDOB().toString() + "\', '%d-%m-%Y'),"
+				+ "\'RENTER\'"
 				+ ");";
 		String insertUserSQL2 = "INSERT INTO CARRENTER VALUES (\""
 				+ user.getUsername() + "\", \""
@@ -88,18 +89,18 @@ public class JDBCConnector {
 	}
 	
 	// Query for login - whether username exists
-	public boolean findUsernameAndPassword(String username, String password) throws SQLException{
+	public String findUsernameAndPassword(String username, String password) throws SQLException{
 		Statement statement = null;
-		String findUserSQL = "SELECT USERNAME,PASSWORD FROM USER WHERE USERNAME = \'"
+		String findUserSQL = "SELECT TYPE FROM USER WHERE USERNAME = \'"
 							+ username + "\' AND PASSWORD = \'"+ password + "\';";
-		boolean exists = false;
+		String type = null;
 		try {
 			connect();
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
 			ResultSet rs = statement.executeQuery(findUserSQL);
 			if (rs.next()) {
-				exists = true;
+				type = rs.getString("TYPE");
 			}
 
 		} catch (SQLException e) {
@@ -112,7 +113,7 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
-		return exists;
+		return type;
 	}
 	
 	// Verify license
