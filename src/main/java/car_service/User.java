@@ -12,12 +12,14 @@ public class User {
 	protected String firstname;
 	protected String lastname;
 	protected Date dob;
+	ArrayList<Notification> notifList;
 	
-	public User(String username, String password, String fn, String ln, String dob) {
+	public User(String username, String password, String fn, String ln, String dob, ArrayList<Notification> notifList) {
 		this.username = username;
 		this.password = password;
 		firstname = fn;
 		lastname = ln;
+		this.notifList = notifList;
 		try {
 			this.dob = new SimpleDateFormat(DATE_FORMAT).parse(dob);
 		} catch (ParseException e) {
@@ -59,7 +61,7 @@ public class User {
 	
 	public static boolean containsDigit(String s) {
 		for (int i = 0 ; i < s.length(); i++) {
-			if (s.charAt(i) >= 48 || s.charAt(i) <= 57) {
+			if (s.charAt(i) >= 48 && s.charAt(i) <= 57) {
 				return true;
 			}
 		}
@@ -73,7 +75,12 @@ public class User {
 	public int hashCode(){
 	    return username.hashCode();
 	}
+	
+	public ArrayList<Notification> getNotifList(){
+		return notifList;
+	}
 }
+
 class UserExclusionStrategy implements ExclusionStrategy {
 
 	@Override

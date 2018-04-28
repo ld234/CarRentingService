@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import javafx.util.*;
 
 
 public class CarListing {
@@ -26,11 +26,12 @@ public class CarListing {
 	private double totalPrice;
 	private int rating;
 	private String img;
-	HashMap<LocalDate,String > unavailable;
+	HashMap< Pair<LocalDate,LocalDate> ,String > unavailable;
 	HashMap<Date,String > Brands;
+	String owner;
 	
-	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath) {
-		unavailable = new HashMap<LocalDate, String>();
+	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner) {
+		unavailable = new HashMap< Pair<LocalDate,LocalDate>, String>();
 		listingNumber = carListingNum;
 		this.rego= rego;
 		this.brand= brand;
@@ -42,6 +43,11 @@ public class CarListing {
 		this.odometer= odometer;
 		setTransmission(transType);
 		img = imgPath;
+		this.owner = owner;
+	}
+	
+	public String getOwner() {
+		return owner;
 	}
 	
 	public String getImgPath() {
@@ -99,27 +105,28 @@ public class CarListing {
 			this.transType = transmission.manual;
 		}
 		else {
-			System.out.println("Error: wrong type of transmission");
+			System.err.println("Error: wrong type of transmission");
 		}
 	}
 	
-	public boolean bookCarListing( String username,List<LocalDate> dates) {
+	public boolean bookCarListing( String username,LocalDate from, LocalDate to) {
 		
 		boolean returnVal = true;
 		
-		//Checks if booking is valid
-		for(int i = 0; i< dates.size(); i++)
+		//Checks if booking is valid, the from is not within any range, the to is not within any range
+		Pair<LocalDate, LocalDate> [] rangeList = null;
+		rangeList = unavailable.keySet().toArray(rangeList);
+		
+		
+		for(Pair <LocalDate, LocalDate> fromTo : rangeList )
 		{
-			if(unavailable.containsKey(dates.get(i))) {
+			boolean valid = (fromTo.getKey().isAfter(from) && fromTo.getKey().isAfter(to)) || (fromTo.getValue().isBefore(from) && fromTo.getValue().isBefore(to));
+			if (!valid) {
 				return false;
 			}
 		}
 		//books carlisting on the given dates
-		for(int i = 0; i< dates.size(); i++)
-		{
-			unavailable.put(dates.get(i),username);
-		}
-		
+		unavailable.put(new Pair<LocalDate,LocalDate>(from,to),username);
 		/*
 		//find how many days for booking
 		long diff = Math.abs(toDate.getTime() - fromDate.getTime());
@@ -182,9 +189,9 @@ public class CarListing {
 	
 	//for testing*************************************************************
 	public void showBooking() {
-		Iterator<HashMap.Entry<LocalDate, String>> it = unavailable.entrySet().iterator();
+		Iterator<HashMap.Entry< Pair<LocalDate,LocalDate>, String>> it = unavailable.entrySet().iterator();
 	    while (it.hasNext()) {
-	        HashMap.Entry<LocalDate, String> pair = it.next();
+	    	HashMap.Entry< Pair<LocalDate,LocalDate>, String> pair = it.next();
 	        System.out.println(pair.getKey() + " = " + pair.getValue());
 	    }
 	}

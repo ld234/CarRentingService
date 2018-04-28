@@ -6,7 +6,9 @@ import spark.utils.IOUtils;
 import static spark.Spark.*;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,6 +47,35 @@ public class ListingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Get info of a listing by listing number
+		get("/list/:listingNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+		
+		post("/approve/:reqNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+		
+		delete("/reject/:reqNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+		
+		get("/search",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = search(request);
+			request.queryParams("");
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
 		/*post("/carimg", (request,response) -> {
 			System.out.println("In carimg");
 			this.handleUpload(request);
@@ -58,19 +89,52 @@ public class ListingController {
 		});*/
 	}
 	
+	private StandardResponse search (Request request) {
+		HashMap<String,String> criteria = new HashMap<String,String>();
+		for (String key : request.queryParams()) {
+			criteria.put(key, request.queryParams(key));
+		}
+		ArrayList<CarListing> data;
+		try {
+			data = jc.searchCarListing(criteria);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(500);
+		}
+		return new StandardResponse(200,data,true);
+		
+	}
+	
+	private StandardResponse getListing(Request request) {
+		Long listingNum = Long.parseLong(request.params(":listingNum"));
+		CarListing cl = null;
+		try {
+			cl = jc.getListing(listingNum);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(500);
+		}
+		return new StandardResponse(200,cl,true);
+	}
+	
 	private StandardResponse createListing (Request request) {
-		//System.out.println(request.body());
+		//System.out.println(request.body());   
 		String json="";
 		JDBCConnector.listingCount += 1;
 		long listingNum = JDBCConnector.listingCount;
 
-			request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
-			json = request.raw().getParameter("data");
-			if (request.raw().getParameter("data") == null) {
-				System.out.println("Cannot get data");
-			}
-
-		JSONObject jsonObj = new JSONObject(json);
+		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
+		json = request.raw().getParameter("data");
+		if (request.raw().getParameter("data") == null) {
+			System.out.println("Cannot get image");
+		}
+		JSONObject jsonObj = null;
+		try {
+			jsonObj = new JSONObject(json);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
 		
 		String owner ="";
 		StandardResponse verifyRes = uc.verify(request);

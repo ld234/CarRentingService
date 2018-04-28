@@ -12,8 +12,9 @@ public class Server {
 		theDir.mkdir();
 		staticFiles.externalLocation(System.getProperty("user.dir")+File.separator+"listingImg");
 		JDBCConnector jc = new JDBCConnector();
-		UserController uC = new UserController(jc);
-		new ListingController(jc, uC);
+		UserController uc = new UserController(jc);
+		new ListingController(jc, uc);
+		new BookingController(jc, uc);
 	}
 	
 	

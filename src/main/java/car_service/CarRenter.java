@@ -1,11 +1,13 @@
 package car_service;
 
+import java.util.ArrayList;
+
 public class CarRenter extends User{
 	private String driverLicense;
 	CreditCard creditCard;
 	
-	public CarRenter(String username, String password, String fn, String ln, String driverLicense,String dob,CreditCard creditCard) {
-		super(username,password,fn,ln,dob);
+	public CarRenter(String username, String password, String fn, String ln, String driverLicense,String dob,CreditCard creditCard,ArrayList<Notification> notifList) {
+		super(username,password,fn,ln,dob,notifList);
 		this.driverLicense = driverLicense;
 		this.creditCard = creditCard;
 	}

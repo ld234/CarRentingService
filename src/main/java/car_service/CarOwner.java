@@ -2,6 +2,7 @@ package car_service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,7 +16,7 @@ public class CarOwner extends CarRenter{
 	HashMap < Pair<Long,String>,BookingRequest > bookingRequests;
 	
 	public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings) {
-		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard());
+		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard(),cr.getNotifList());
 		this.carListings = carListings;
 	}
 	
@@ -36,7 +37,7 @@ public class CarOwner extends CarRenter{
 	public void approveRequest(long listingNum, String renter) {
 		BookingRequest br = bookingRequests.get(new Pair<Long,String>(listingNum,renter));
 		br.approve();
-		carListings.get(listingNum).bookCarListing(renter, getDatesBetween(br.getFrom(),br.getTo()));
+		carListings.get(listingNum).bookCarListing(renter, br.getFrom(),br.getTo());
 	}
 	
 	@SuppressWarnings("restriction")

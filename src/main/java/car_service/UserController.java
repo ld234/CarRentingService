@@ -2,7 +2,9 @@ package car_service;
 import static spark.Spark.*;
 
 import com.google.common.hash.Hashing;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import org.json.*;
 import io.jsonwebtoken.*;
@@ -12,7 +14,6 @@ import java.security.Key;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-//import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -23,7 +24,7 @@ public class UserController {
 	private JDBCConnector jc;
 	private Key key;
 	private HashMap<String,Session> connectedUsers;
-	private static final long SESSION_DURATION = 600000; // 10 mins
+	private static final long SESSION_DURATION = 1200000; // 20 mins
 	
 	public UserController(JDBCConnector jc) {
 		this.jc = jc;
@@ -31,9 +32,9 @@ public class UserController {
 		byte[] bytes = new String("ServerSecret").getBytes();
 		key = new SecretKeySpec(bytes,"HS512");
 		connectedUsers = new HashMap<String,Session>();
+		
 		// Route for registration
 		post("/account", (request, response) -> {
-			//TimeUnit.SECONDS.sleep(30);
 			response.type("application/json");
             StandardResponse send = register(request);
             response.status(send.getStatusCode());
@@ -59,8 +60,6 @@ public class UserController {
 			return resp;
 		});
 		
-		
-		
 		// Route for update user password
 		put("/account", (request, response) -> {
 			response.type("application/json");
@@ -71,7 +70,7 @@ public class UserController {
 		get("/account", (req, res) -> {
 			res.type("application/json");
 			StandardResponse verifyRes = verify(req);
-			System.out.println("Get data verify " + verifyRes.getData());
+//			System.out.println("Get data verify " + verifyRes.getData());
 			res.status(verifyRes.getStatusCode());
 			if (verifyRes.getStatusCode() != 200) {
 				return JsonUtil.toJson(verifyRes);
@@ -94,11 +93,25 @@ public class UserController {
 			else {
 				type = "admin";
 			}			
-			Map<String, String> additionalProps = new HashMap<String, String>();
-			additionalProps.put("type", type);
-			additionalProps.put("username", username);
-			String resp = JsonUtil.toJson(thisUser, new UserExclusionStrategy(), additionalProps);
-			return resp;
+			//Map<String, String> additionalProps = new HashMap<String, String>();
+			//additionalProps.put("type", type);
+			//additionalProps.put("username", username);
+			System.out.println(JsonUtil.toJson(thisUser.getNotifList()));
+			///additionalProps.put("notifications", JsonUtil.toJson(thisUser.getNotifList()));
+			//String resp = JsonUtil.toJson(thisUser, new UserExclusionStrategy(), additionalProps);
+			JsonObject obj = new JsonObject();
+			obj.addProperty("type", type);
+			obj.addProperty("username", thisUser.getUsername());
+			obj.addProperty("DOB", thisUser.getDOB());
+			obj.addProperty("fullname", thisUser.getFullName());
+			if (type.equals("carRenter")) {
+				obj.addProperty("creditCard", ((CarRenter) thisUser).getCardNumber().substring(13, 16));
+			}
+			else if (type.equals("carOwner")) {
+				obj.addProperty("creditCard", ((CarRenter) thisUser).getCardNumber().substring(13, 16));
+			}
+			obj.add("notifications",new Gson().toJsonTree(thisUser.getNotifList()));
+			return obj.toString();
 		});
 		
 		/*post("/verify", (request, response) -> {
@@ -197,32 +210,61 @@ public class UserController {
 		else {
 			subject = new JSONObject(verifyRes.getData()).getString("subject");
 		}
-		if (!User.containsDigit(jsObj.getString("password"))) {
-			return new StandardResponse(400,"Password must contain digits");
-		}
-		else if(jsObj.getString("password").length() < 8) {
-			return new StandardResponse(400,"Password too short");
-		}
-		else {
-			try {
-				String newpw = hashPassword(jsObj.getString("password"));
-				jsObj.put("password", newpw);
-				Session s = connectedUsers.get(subject);
-				if (s == null) {
-					System.out.println("Add new session");
-					connectedUsers.put(subject, createSession(subject));
-					s = connectedUsers.get(subject);
-					//return new StandardResponse(400, "Cannot update.");
+		if (!valuesInList(jsObj))
+			return new StandardResponse(400);
+		if (jsObj.has("password")){
+			if (!jsObj.has("oldPassword")) {
+				return new StandardResponse(400,"Missing old password");
+			}
+			else {
+				String oldPwHash = hashPassword(jsObj.getString("oldPassword"));
+				try {
+					if (jc.findUsernameAndPassword(subject, oldPwHash) == null) {
+						return new StandardResponse(401,"Wrong old password");
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					return new StandardResponse(500);
 				}
-				s.getUser().setPassword(newpw);
-				connectedUsers.put(subject, s);
-				//System.out.println(connectedUsers.get(subject).getUser().getFirstName() + " " + connectedUsers.get(subject).getUser().getPassword());
-				jc.updateUser(jsObj,subject);
-			} catch (SQLException e) {
-				return new StandardResponse(400, "Cannot update.");
-			} catch (JSONException e) {
-				e.printStackTrace();
-			} 
+			}
+			if (!User.containsDigit(jsObj.getString("password"))) {
+				return new StandardResponse(400,"Password must contain digits");
+			}
+			else if(jsObj.getString("password").length() < 8) {
+				return new StandardResponse(400,"Password too short");
+			}
+			else {
+				try {
+					String newpw = hashPassword(jsObj.getString("password"));
+					jsObj.put("password", newpw);
+					Session s = connectedUsers.get(subject);
+					if (s == null) {
+						System.out.println("Add new session");
+						connectedUsers.put(subject, createSession(subject));
+						s = connectedUsers.get(subject);
+						//return new StandardResponse(400, "Cannot update.");
+					}
+					s.getUser().setPassword(newpw);
+					connectedUsers.put(subject, s);
+					//System.out.println(connectedUsers.get(subject).getUser().getFirstName() + " " + connectedUsers.get(subject).getUser().getPassword());
+					//jc.updateUser(jsObj,subject);
+				} catch (JSONException e) {
+					e.printStackTrace();
+					return new StandardResponse(400);
+				} 
+			}
+		}
+		if (jsObj.has("creditCard")) {
+			JSONObject cc = jsObj.getJSONObject("creditCard");
+			if (!verifyCreditCard(cc.getString("cardNumber"),cc.getString("cardholder"),cc.getString("expiryDate"))) {
+				return new StandardResponse(400);
+			}
+		}
+		try {
+			jc.updateUser(jsObj, subject);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400, "Cannot update.");
 		}
 		return new StandardResponse(200);
 	}
@@ -280,8 +322,8 @@ public class UserController {
 		String compactJws = request.headers("x-access-token");
 		try {
 		    sub = Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody().getSubject();
-		    System.out.println("Subject" + sub);
-		    System.out.println("Time now: " + new Date().getTime());
+//		    System.out.println("Subject" + sub);
+//		    System.out.println("Time now: " + new Date().getTime());
 		} 
 		catch (SignatureException e) {
 		   return new StandardResponse(401, "Fail to authenticate");
@@ -339,6 +381,18 @@ public class UserController {
 			System.out.println("removing "+ username);
 			connectedUsers.remove(username);
 		}
+	}
+	
+	private boolean valuesInList(JSONObject jsObj) {
+		String [] valueList = new String[] {"password","creditCard","oldPassword"};
+		int sz = jsObj.keySet().size();
+		String [] keys = new String[sz];
+		keys = jsObj.keySet().toArray(keys);
+		for (String fields : keys) {
+			if (!Arrays.asList(valueList).contains(fields))
+				return false;
+		}
+		return true;
 	}
 }
 	

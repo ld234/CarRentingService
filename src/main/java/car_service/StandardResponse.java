@@ -4,7 +4,7 @@ public class StandardResponse {
 	  
     private int statusCode;
     private String message;
-    private String data;
+    private Object data;
      
     public StandardResponse(int statusCode) {
         this.statusCode = statusCode;
@@ -15,7 +15,7 @@ public class StandardResponse {
     	this.message = message;
     }
     
-    public StandardResponse(int statusCode, String data, boolean dataExist) {
+    public StandardResponse(int statusCode, Object data, boolean dataExist) {
     	this.statusCode = statusCode;
     	this.data = data;
     }
@@ -28,7 +28,7 @@ public class StandardResponse {
     	return message;
     }
     
-    public String getData() {
+    public Object getData() {
     	return data;
     }
 }

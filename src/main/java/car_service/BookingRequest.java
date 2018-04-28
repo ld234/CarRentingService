@@ -7,6 +7,7 @@ public class BookingRequest {
 	private LocalDate to;
 	private String renter;
 	private long listingNum;
+	
 	public BookingRequest(LocalDate from, LocalDate to, String username, long listingNum) {
 		this.from = from;
 		this.to = to;

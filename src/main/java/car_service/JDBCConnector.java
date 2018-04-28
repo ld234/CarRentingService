@@ -2,6 +2,8 @@ package car_service;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.json.JSONObject;
@@ -157,7 +159,7 @@ public class JDBCConnector {
 	
 	public boolean findCarOwner(String username) throws SQLException{
 		Statement statement = null;
-		String findCarOwnerSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'"
+		String findCarOwnerSQL = "SELECT USERNAME FROM CAROWNER WHERE USERNAME = \'"
 							+ username +  "\';";
 		boolean exists = false;
 		try {
@@ -256,15 +258,26 @@ public class JDBCConnector {
 		Statement statement = null;
 		String findUserSQL = "SELECT * FROM USER U JOIN CARRENTER C ON U.USERNAME = C.USERNAME WHERE U.USERNAME = \'"
 							+ username + "\';";
+		String findNotifSQL = "SELECT * FROM NOTIFICATION WHERE RECEIVER = \'" + username +"\';";
 		
 		try {
 			connect();
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
+			ArrayList<Notification> notifList = new ArrayList<Notification>();
+			ResultSet rs2 = statement.executeQuery(findNotifSQL);
+			if (rs2.next()){
+				notifList.add(new Notification(rs2.getString("NOTIFTYPE"),rs2.getString("MESSAGE"),rs2.getString("RECEIVER")));
+			}
+			rs2.close();
 			ResultSet rs = statement.executeQuery(findUserSQL);
 			rs.next();
+			
 			CreditCard cc = getCreditCard(rs.getString("CARDNUMBER"));
-			CarRenter cr = new CarRenter(rs.getString(1),rs.getString("PASSWORD"),rs.getString("FIRSTNAME"),rs.getString("LASTNAME"),rs.getString("LICENSENUM"), rs.getString("DOB"),cc);
+			
+			CarRenter cr = new CarRenter(rs.getString(1),rs.getString("PASSWORD"),rs.getString("FIRSTNAME"),
+					rs.getString("LASTNAME"),rs.getString("LICENSENUM"), 
+					new SimpleDateFormat(User.DATE_FORMAT).format(new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString("DOB"))),cc,notifList);
 			if (!findCarOwner(username)) {
 				return cr;
 			}
@@ -272,7 +285,7 @@ public class JDBCConnector {
 				return new CarOwner(cr,getCarListings(cr.getUsername()));
 			}
 		} catch (SQLException e) {
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 		} catch(Exception e) {
 			System.out.println(e.getMessage());
 		}finally {
@@ -285,7 +298,6 @@ public class JDBCConnector {
 		}
 		return null;
 	}
-	
 	
 	// Get credit card details
 	public CreditCard getCreditCard(String cardNum) throws SQLException{
@@ -377,7 +389,8 @@ public class JDBCConnector {
 						                                         rs.getString("TRANSMISSION"),
 						                                         rs.getInt("YEAR"),
 						                                         rs.getInt("CAPACITY"),
-						                                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH")));
+						                                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
+						                                         rs.getString("OWNER")));
 			}
 
 		} catch (SQLException e) {
@@ -559,6 +572,213 @@ public class JDBCConnector {
 			}
 		}
 	}
+	
+	public void insertBookingRequest(BookingRequest br, Notification n) throws SQLException {
+		Statement statement = null;
+		long listingNum = br.getListingNumber();
+		String insertBookingRequestSQL = "INSERT INTO BOOKINGREQUEST VALUES ( " +
+									listingNum + ", " +
+									"STR_TO_DATE(\'" + br.getFrom().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))+ "\', '%d-%m-%Y'), "+
+									"STR_TO_DATE(\'" + br.getTo().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\', '%d-%m-%Y'), \'"+
+									br.getRenter()+"\');";
+
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(insertBookingRequestSQL);
+                        // execute the SQL statement
+			statement.execute(insertBookingRequestSQL);
+			System.out.println("Booking MADE");
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public int getNotifCount () throws SQLException {
+		Statement statement = null;
+		String getNotifCountSQL = "SELECT COUNT(*) FROM NOTIFICATION;";
+		int count = -1;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs= statement.executeQuery(getNotifCountSQL);
+			
+			if (rs.next()) {
+				count = rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return count;
+	}
+	
+	public String getListingOwner (Long listingNumber) throws SQLException {
+		Statement statement = null;
+		String getListingOwnerSQL = "SELECT OWNER FROM LISTING WHERE LISTINGNUM = " + listingNumber.longValue() + ";";
+		String owner = "";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs= statement.executeQuery(getListingOwnerSQL);
+			
+			if (rs.next()) {
+				owner = rs.getString(1);
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return owner;
+	}
+	
+	public void insertNotification(Notification notif) throws SQLException {
+		Statement statement = null;
+		int notifNum = this.getNotifCount() +1;
+		String insertBookingRequestSQL = "INSERT INTO NOTIFICATION VALUES ( " +
+									notifNum+", \'" +
+									notif.getMessage() + "\', \'"+
+									notif.getType()+ "\',\'" +
+									notif.getReceiver()+"\') ;";
+
+
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(insertBookingRequestSQL);
+                        // execute the SQL statement
+			statement.execute(insertBookingRequestSQL);
+			System.out.println("Booking MADE");
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public CarListing getListing (Long listingNumber) throws SQLException {
+		Statement statement = null;
+		String getListingOwnerSQL = "SELECT * FROM LISTING WHERE LISTINGNUM = " + listingNumber.longValue() + ";";
+		CarListing listing = null;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs= statement.executeQuery(getListingOwnerSQL);
+			
+			if (rs.next()) {
+				listing = new CarListing(rs.getLong("LISTINGNUM"),
+						 rs.getString("REGO"),
+                         rs.getString("BRAND"),
+                         rs.getString("MODEL"),
+                         rs.getString("LOCATION"),
+                         rs.getString("COLOUR"),
+                         rs.getString("TRANSMISSION"),
+                         rs.getInt("YEAR"),
+                         rs.getInt("CAPACITY"),
+                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
+                         rs.getString("OWNER"));
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return listing;
+	}
+	
+	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException{
+		ArrayList<CarListing> result = new ArrayList<CarListing>();
+		Statement statement = null;
+		String from = criteria.remove("from");
+		String to  = criteria.remove("to");
+		int sz = criteria.size();
+		String searchCarListingSQL = "SELECT L.LISTINGNUM,REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
+									+ " FROM BOOKING B RIGHT OUTER JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM WHERE "+
+									"( FROMDATE > STR_TO_DATE(\'" + to + "\', '%d-%m-%Y') OR "+
+									"TODATE < STR_TO_DATE(\'" + from + "\', '%d-%m-%Y')) AND ";
+		
+		String [] keys = new String[sz];
+		keys = criteria.keySet().toArray(keys);
+		System.out.println(keys[0]);
+		for (int i = 0; i < sz; i++) {
+			if (keys[i].toLowerCase().equals("capacity"))
+				searchCarListingSQL += keys[i] + " = " + criteria.get(keys[i]);
+			else if (keys[i].toLowerCase().equals("transmission") || keys[i].toLowerCase().equals("brand") )
+				searchCarListingSQL += keys[i]	+  " = \'" + criteria.get(keys[i]) + "\'";
+			else if (keys[i].toLowerCase().equals("location") )
+				searchCarListingSQL += keys[i]	+  " LIKE \'%" + criteria.get(keys[i]) + "%\'";
+			else if (keys[i].toLowerCase().equals("from") )
+				searchCarListingSQL += keys[i]	+  " " + criteria.get(keys[i]) + "%\'";
+			else if (keys[i].toLowerCase().equals("to") )
+			if (i < sz-1) {
+				searchCarListingSQL += " AND ";
+			}
+		}
+		searchCarListingSQL += " UNION SELECT * FROM LISTING WHERE LISTINGNUM NOT IN (SELECT LISTINGNUM FROM BOOKING) ";
+		searchCarListingSQL +=  ";";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(searchCarListingSQL);
+                        // execute the SQL statementS
+			ResultSet rs = statement.executeQuery(searchCarListingSQL);
+			while (rs.next()) {
+				result.add(new CarListing(rs.getLong("LISTINGNUM"),
+						 rs.getString("REGO"),
+                         rs.getString("BRAND"),
+                         rs.getString("MODEL"),
+                         rs.getString("LOCATION"),
+                         rs.getString("COLOUR"),
+                         rs.getString("TRANSMISSION"),
+                         rs.getInt("YEAR"),
+                         rs.getInt("CAPACITY"),
+                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
+                         rs.getString("OWNER")));
+			}
+			System.out.println("Listing searched");
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return result;
+	}
+	
 	public Connection getDBConnection() {
 		return dbConnection;
 	}
