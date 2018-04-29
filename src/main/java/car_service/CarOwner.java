@@ -2,7 +2,6 @@ package car_service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,13 +35,26 @@ public class CarOwner extends CarRenter{
 	@SuppressWarnings("restriction")
 	public void approveRequest(long listingNum, String renter) {
 		BookingRequest br = bookingRequests.get(new Pair<Long,String>(listingNum,renter));
-		br.approve();
 		carListings.get(listingNum).bookCarListing(renter, br.getFrom(),br.getTo());
 	}
 	
 	@SuppressWarnings("restriction")
 	public void rejectRequest(long listingNum, String renter) {
-		bookingRequests.get(new Pair<Long,String>(listingNum,renter)).reject();
+		bookingRequests.remove(new Pair<Long,String>(listingNum,renter));
+	}
+	
+	public void bookingExists() {
+		Pair<Long,String> [] keys = null;
+		for (Pair<Long,String> key : bookingRequests.keySet().toArray(keys)) {
+			System.out.println(key.getKey() + " " + key.getValue());
+		}
+	}
+	
+	@SuppressWarnings("restriction")
+	public BookingRequest [] getBookingRequestList() {
+		Pair<Long,String> [] keys = null;
+		keys = bookingRequests.keySet().toArray(keys);
+		return null;
 	}
 	
 	public static List<LocalDate> getDatesBetween(LocalDate startDate, LocalDate endDate) { 
@@ -51,5 +63,13 @@ public class CarOwner extends CarRenter{
 			      .limit(numOfDaysBetween)
 			      .mapToObj(i -> startDate.plusDays(i))
 			      .collect(Collectors.toList()); 
+	}
+	
+	public BookingRequest addBookingRequest(BookingRequest br) {
+		return bookingRequests.put(new Pair<Long,String>(br.getListingNumber(),br.getRenter()),br);
+	}
+	
+	public BookingRequest getBookingRequest(Long l, String requester) {
+		return bookingRequests.get(new Pair<Long,String>(l,requester));
 	}
 }

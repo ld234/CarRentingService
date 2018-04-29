@@ -23,7 +23,7 @@ import spark.*;
 public class UserController {
 	private JDBCConnector jc;
 	private Key key;
-	private HashMap<String,Session> connectedUsers;
+	static HashMap<String,Session> connectedUsers;
 	private static final long SESSION_DURATION = 1200000; // 20 mins
 	
 	public UserController(JDBCConnector jc) {
@@ -75,7 +75,7 @@ public class UserController {
 			if (verifyRes.getStatusCode() != 200) {
 				return JsonUtil.toJson(verifyRes);
 			}
-			String username = new JSONObject(verifyRes.getData()).getString("subject");
+			String username = new JSONObject((String)verifyRes.getData()).getString("subject");
 			Session s = connectedUsers.get(username);
 			if (s == null) {
 				connectedUsers.put(username, createSession(username));
@@ -208,7 +208,7 @@ public class UserController {
 			return verifyRes;
 		}
 		else {
-			subject = new JSONObject(verifyRes.getData()).getString("subject");
+			subject = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		if (!valuesInList(jsObj))
 			return new StandardResponse(400);
@@ -322,7 +322,7 @@ public class UserController {
 		String compactJws = request.headers("x-access-token");
 		try {
 		    sub = Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody().getSubject();
-//		    System.out.println("Subject" + sub);
+		    System.out.println("Subject" + sub);
 //		    System.out.println("Time now: " + new Date().getTime());
 		} 
 		catch (SignatureException e) {

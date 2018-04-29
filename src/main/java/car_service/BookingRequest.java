@@ -31,9 +31,13 @@ public class BookingRequest {
 		return listingNum;
 	}
 	
-	public void approve() {
+	/*public void approve() {
+		// write to database
+		// add to history
+		// deduct amount
 	}
 	
 	public void reject() {
-	}
+		// delete from database
+	}*/
 }

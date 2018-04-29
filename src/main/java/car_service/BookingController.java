@@ -23,6 +23,54 @@ public class BookingController {
 			response.type("application/json");
 			return JsonUtil.toJson(res);
 		});
+		
+		post("/approve/:reqNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = approveListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+		
+		delete("/reject/:requester/:listingNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = rejectListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+	}
+	
+	private StandardResponse approveListing(Request request) {
+		
+		return null;
+	}
+	
+	private StandardResponse rejectListing(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String owner = null;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		String requester = request.params(":requester");
+		Long listingNum = Long.parseLong(request.params(":listingNum"));
+		System.out.println(requester + listingNum); 
+		try {
+			jc.deleteBookingRequest(requester,listingNum);
+			//Notification
+			jc.insertNotification(new Notification("rejectBooking",owner + " has rejected your booking request on car listing " + listingNum,requester));
+			OwnerSession os = (OwnerSession) UserController.connectedUsers.get(owner);
+			((CarOwner) os.getUser()).rejectRequest(listingNum, requester);
+			//UserController.connectedUsers.put(owner, os);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(500);
+		}
+		
+		
+		return null;
 	}
 	
 	private StandardResponse requestCarListing(Request request) {
@@ -32,7 +80,7 @@ public class BookingController {
 			return verifyRes;
 		}
 		else {
-			renter = new JSONObject(verifyRes.getData()).getString("subject");
+			renter = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		JSONObject jsObj = new JSONObject(request.body());
 		String from = jsObj.getString("from");
@@ -45,6 +93,7 @@ public class BookingController {
 			Notification n = new Notification("newBooking",renter + " has requested to rent car listing " + listingNum, jc.getListingOwner(listingNum));
 			jc.insertBookingRequest(br,n);
 			jc.insertNotification(n);
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

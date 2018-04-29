@@ -779,6 +779,25 @@ public class JDBCConnector {
 		return result;
 	}
 	
+	public void deleteBookingRequest(String requester, Long listingNum) throws SQLException {
+		Statement statement = null;
+		String getListingOwnerSQL = "DELETE FROM LISTING WHERE LISTINGNUM = " + listingNum.longValue() + " AND REQUESTER = \'" + requester +"\';";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(getListingOwnerSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
 	public Connection getDBConnection() {
 		return dbConnection;
 	}

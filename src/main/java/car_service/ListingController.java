@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -30,6 +31,12 @@ public class ListingController {
 			response.type("application/json");
 			StandardResponse res = createListing(request);
 			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200) {
+				JsonObject obj = new JsonObject();
+				obj.addProperty("statusCode", 200);
+				obj.addProperty("listingNumber", (Long)res.getData());
+				return JsonUtil.toJson(obj);
+			}
 			return JsonUtil.toJson(res);
 		});
 		
@@ -40,6 +47,7 @@ public class ListingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Delete listing with listingNum
 		delete("/list/:listingNum", (request,response) -> {
 			response.type("application/json");
 			StandardResponse res = deleteListing(request);
@@ -55,20 +63,7 @@ public class ListingController {
 			return JsonUtil.toJson(res.getData());
 		});
 		
-		post("/approve/:reqNum",(request,response) -> {
-			response.type("application/json");
-			StandardResponse res = getListing(request);
-			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
-		});
-		
-		delete("/reject/:reqNum",(request,response) -> {
-			response.type("application/json");
-			StandardResponse res = getListing(request);
-			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
-		});
-		
+		// Search car listing
 		get("/search",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = search(request);
@@ -76,8 +71,8 @@ public class ListingController {
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res.getData());
 		});
+		
 		/*post("/carimg", (request,response) -> {
-			System.out.println("In carimg");
 			this.handleUpload(request);
 			response.type("application/json");
 			try {
@@ -142,7 +137,7 @@ public class ListingController {
 			return verifyRes;
 		}
 		else {
-			owner = new JSONObject(verifyRes.getData()).getString("subject");
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		jsonObj.put("listingNumber", listingNum);
 		try {
@@ -164,7 +159,7 @@ public class ListingController {
 		} catch (JsonSyntaxException | SQLException e) {
 			System.out.println(e.getMessage());		
 		}
-		return new StandardResponse(200);
+		return new StandardResponse(200,jsonObj.getLong("listingNumber"),true);
 	}
 	
 	private StandardResponse editListing(Request request) {
@@ -176,7 +171,7 @@ public class ListingController {
 			return verifyRes;
 		}
 		else {
-			owner = new JSONObject(verifyRes.getData()).getString("subject");
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		if (!valuesInList(jsonObj)) {
 			return new StandardResponse(400,"Cannot update listing");
@@ -201,7 +196,7 @@ public class ListingController {
 			return verifyRes;
 		}
 		else {
-			owner = new JSONObject(verifyRes.getData()).getString("subject");
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		try {
 			if (!jc.isOwnerListing(owner, listingNum)) {
