@@ -64,6 +64,7 @@ public class UserController {
 		put("/account", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = update(request);
+			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res);
 		});
 
@@ -167,6 +168,7 @@ public class UserController {
 			String cardholder = cc.getString("cardholder");
 			String exp = cc.getString("expiryDate");
 			String cardNum = cc.getString("cardNumber");
+			int cvv = cc.getInt("cardCvv");
 			if (jc.usernameExists(username)) {
 				return new StandardResponse(400, "Username exists");
 			}
@@ -179,7 +181,7 @@ public class UserController {
 			else if(!verifyLicense(driverLicense,fn,ln,dob)) {
 				return new StandardResponse(400, "Cannot verify license");
 			}
-			else if(!verifyCreditCard(cardNum,cardholder,exp)) {
+			else if(!verifyCreditCard(cardNum,cardholder,exp,cvv)) {
 				return new StandardResponse(400, "Cannot verify credit card");
 			}
 			else {
@@ -237,6 +239,7 @@ public class UserController {
 				try {
 					String newpw = hashPassword(jsObj.getString("password"));
 					jsObj.put("password", newpw);
+					jsObj.remove("oldPassword");
 					Session s = connectedUsers.get(subject);
 					if (s == null) {
 						System.out.println("Add new session");
@@ -256,7 +259,7 @@ public class UserController {
 		}
 		if (jsObj.has("creditCard")) {
 			JSONObject cc = jsObj.getJSONObject("creditCard");
-			if (!verifyCreditCard(cc.getString("cardNumber"),cc.getString("cardholder"),cc.getString("expiryDate"))) {
+			if (!verifyCreditCard(cc.getString("cardNumber"),cc.getString("cardholder"),cc.getString("expiryDate"),cc.getInt("cardCvv"))) {
 				return new StandardResponse(400);
 			}
 		}
@@ -280,8 +283,11 @@ public class UserController {
 					jsonObj.getString("dob").equals("") || 
 					cc.getString("cardholder").equals("") ||
 					cc.getString("expiryDate").equals("") ||
-					cc.getString("cardNumber").equals(""))
+					cc.getString("cardNumber").equals("")) {
+				
 				return false;
+			}
+			cc.getInt("cardCvv");
 		}
 		catch(JSONException e) {
 			System.out.println(e.getMessage());
@@ -298,9 +304,9 @@ public class UserController {
 		}
 	}
 	
-	private boolean verifyCreditCard (String cardNum,String cardholder, String expiryDate) {
+	private boolean verifyCreditCard (String cardNum,String cardholder, String expiryDate, int cvv) {
 		try {
-			return jc.findCreditCard( cardNum, cardholder,expiryDate);
+			return jc.findCreditCard( cardNum, cardholder,expiryDate,cvv);
 		} catch (SQLException e) {
 			return false;
 		}
@@ -323,7 +329,6 @@ public class UserController {
 		try {
 		    sub = Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody().getSubject();
 		    System.out.println("Subject" + sub);
-//		    System.out.println("Time now: " + new Date().getTime());
 		} 
 		catch (SignatureException e) {
 		   return new StandardResponse(401, "Fail to authenticate");

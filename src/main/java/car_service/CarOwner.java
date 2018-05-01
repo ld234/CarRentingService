@@ -2,21 +2,26 @@ package car_service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javafx.util.*;
-
 public class CarOwner extends CarRenter{
 	HashMap <Long,CarListing> carListings;
-	@SuppressWarnings("restriction")
 	HashMap < Pair<Long,String>,BookingRequest > bookingRequests;
 	
-	public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings) {
+	/*public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings) {
 		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard(),cr.getNotifList());
 		this.carListings = carListings;
+		bookingRequests = new HashMap< Pair<Long,String>,BookingRequest>();
+	}*/
+	
+	public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings,HashMap< Pair<Long,String>,BookingRequest>br) {
+		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard(),cr.getNotifList(),cr.getSocialMediaLink());
+		this.carListings = carListings;
+		bookingRequests = br;
 	}
 	
 	public void addCarListing(CarListing cl) {
@@ -32,13 +37,11 @@ public class CarOwner extends CarRenter{
 		System.out.println(carListings.size());
 	}
 	
-	@SuppressWarnings("restriction")
 	public void approveRequest(long listingNum, String renter) {
 		BookingRequest br = bookingRequests.get(new Pair<Long,String>(listingNum,renter));
 		carListings.get(listingNum).bookCarListing(renter, br.getFrom(),br.getTo());
 	}
 	
-	@SuppressWarnings("restriction")
 	public void rejectRequest(long listingNum, String renter) {
 		bookingRequests.remove(new Pair<Long,String>(listingNum,renter));
 	}
@@ -50,11 +53,11 @@ public class CarOwner extends CarRenter{
 		}
 	}
 	
-	@SuppressWarnings("restriction")
-	public BookingRequest [] getBookingRequestList() {
-		Pair<Long,String> [] keys = null;
-		keys = bookingRequests.keySet().toArray(keys);
-		return null;
+	public Collection <BookingRequest>  getBookingRequestList() {
+
+		Collection <BookingRequest> result = bookingRequests.values();
+		
+		return result; 
 	}
 	
 	public static List<LocalDate> getDatesBetween(LocalDate startDate, LocalDate endDate) { 
@@ -71,5 +74,9 @@ public class CarOwner extends CarRenter{
 	
 	public BookingRequest getBookingRequest(Long l, String requester) {
 		return bookingRequests.get(new Pair<Long,String>(l,requester));
+	}
+	
+	public HashMap<Long,CarListing> getCarListingList(){
+		return carListings;
 	}
 }

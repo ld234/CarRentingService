@@ -5,6 +5,7 @@ import static spark.Spark.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 
 import org.json.JSONObject;
 
@@ -24,7 +25,7 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
-		post("/approve/:reqNum",(request,response) -> {
+		post("/approve/:requester/:listingNum",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = approveListing(request);
 			response.status(res.getStatusCode());
@@ -35,13 +36,51 @@ public class BookingController {
 			response.type("application/json");
 			StandardResponse res = rejectListing(request);
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
 		});
 	}
 	
 	private StandardResponse approveListing(Request request) {
-		
-		return null;
+		StandardResponse verifyRes = uc.verify(request);
+		String owner = null;
+		String requester = request.params(":requester");
+		Long listingNum = Long.parseLong(request.params(":listingNum"));
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		if (uc.getSession(owner) instanceof OwnerSession && uc.getSession(owner) != null) {
+			if(!((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getCarListingList().containsKey(listingNum))
+				return new StandardResponse(401,"Not authorised");
+		}  
+		else {
+			return new StandardResponse(401,"Not authorised");
+		}
+		try {
+			// add new booking to database and to session
+			jc.addBooking(requester,listingNum);
+			// delete booking request
+			jc.deleteBookingRequest(requester, listingNum);
+			// add transaction history
+//			jc.insertTransaction();
+			
+			// add to unavailable dates of listing and to session
+			
+			// deduct bank account and add to bank account of owner
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(500);
+		}
+		BookingRequest brResult;
+		try {
+			brResult = jc.getBookingRequest(requester, listingNum);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(500);
+		}
+		return new StandardResponse(200,brResult,true);
 	}
 	
 	private StandardResponse rejectListing(Request request) {
@@ -55,12 +94,23 @@ public class BookingController {
 		}
 		String requester = request.params(":requester");
 		Long listingNum = Long.parseLong(request.params(":listingNum"));
-		System.out.println(requester + listingNum); 
+		if (uc.getSession(owner) instanceof OwnerSession && uc.getSession(owner) != null) {
+			if(!((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getCarListingList().containsKey(listingNum))
+				return new StandardResponse(401,"Not authorised");
+//			uc.getSession(owner).getUser();
+//			Collection <BookingRequest> arr = ((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getBookingRequestList();
+//			for (BookingRequest p:arr) {
+//				System.out.println(p.getListingNumber() + " "+ p.getRenter());
+//			}
+		}  
+		else {
+			return new StandardResponse(401,"Not authorised");
+		}
 		try {
 			jc.deleteBookingRequest(requester,listingNum);
 			//Notification
-			jc.insertNotification(new Notification("rejectBooking",owner + " has rejected your booking request on car listing " + listingNum,requester));
-			OwnerSession os = (OwnerSession) UserController.connectedUsers.get(owner);
+			jc.insertNotification(new Notification("rejectedBooking",owner + " has rejected your booking request on car listing " + listingNum,requester));
+			OwnerSession os = (OwnerSession) uc.getSession(owner);
 			((CarOwner) os.getUser()).rejectRequest(listingNum, requester);
 			//UserController.connectedUsers.put(owner, os);
 			
@@ -70,7 +120,7 @@ public class BookingController {
 		}
 		
 		
-		return null;
+		return new StandardResponse(200);
 	}
 	
 	private StandardResponse requestCarListing(Request request) {

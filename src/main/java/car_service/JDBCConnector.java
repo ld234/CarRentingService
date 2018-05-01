@@ -2,6 +2,7 @@ package car_service;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -133,6 +134,8 @@ public class JDBCConnector {
 		String findLicenseExist = "SELECT LICENSENUM FROM CARRENTER " 
 				+ "WHERE LICENSENUM = \'"
 				+ license +  "\';";
+		System.out.println("findLicenseSQL");
+		
 		boolean exists = false;
 		try {
 			connect();
@@ -185,7 +188,7 @@ public class JDBCConnector {
 	}
 	
 	// Query for verification of credit card with third party
-	public boolean findCreditCard(String cardNum, String cardholder, String expiryDate) throws SQLException{
+	public boolean findCreditCard(String cardNum, String cardholder, String expiryDate, int cvv) throws SQLException{
 		Statement statement = null;
 		String findLicenseSQL = "SELECT CARDNUMBER FROM CREDITCARD " 
 							+ "WHERE CARDNUMBER = \'"
@@ -193,7 +196,8 @@ public class JDBCConnector {
 							+ "CARDHOLDER = \'"
 							+ cardholder + "\' AND "
 							+ "DATE_FORMAT(EXPIRYDATE,\'%d-%m-%Y\') = \'"
-							+ expiryDate +  "\';";
+							+ expiryDate + "\' AND " 
+							+ "CVV = " + cvv+ ";";
 		boolean exists = false;
 		try {
 			connect();
@@ -277,12 +281,13 @@ public class JDBCConnector {
 			
 			CarRenter cr = new CarRenter(rs.getString(1),rs.getString("PASSWORD"),rs.getString("FIRSTNAME"),
 					rs.getString("LASTNAME"),rs.getString("LICENSENUM"), 
-					new SimpleDateFormat(User.DATE_FORMAT).format(new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString("DOB"))),cc,notifList);
+					new SimpleDateFormat(User.DATE_FORMAT).format(new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString("DOB"))),cc,notifList,
+					rs.getString("SOCIALMEDIALINK"));
 			if (!findCarOwner(username)) {
 				return cr;
 			}
 			else {
-				return new CarOwner(cr,getCarListings(cr.getUsername()));
+				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -310,9 +315,10 @@ public class JDBCConnector {
                         // execute the SQL statement
 			ResultSet rs = statement.executeQuery(findUserSQL);
 			rs.next();
-			return new CreditCard(rs.getString("CARDNUMBER"),rs.getString("CARDHOLDER"),new SimpleDateFormat("yyyy-mm-dd").parse(rs.getString("EXPIRYDATE")));
+			return new CreditCard(rs.getString("CARDNUMBER"),rs.getString("CARDHOLDER"),new SimpleDateFormat("yyyy-mm-dd").parse(rs.getString("EXPIRYDATE")),
+					rs.getInt("CVV"), rs.getInt("BALANCE"));
 		} catch (SQLException e) {
-			return null;
+			e.printStackTrace();
 		} catch (ParseException e) {
 			e.printStackTrace();
 		} finally {
@@ -667,7 +673,7 @@ public class JDBCConnector {
 			System.out.println(insertBookingRequestSQL);
                         // execute the SQL statement
 			statement.execute(insertBookingRequestSQL);
-			System.out.println("Booking MADE");
+			System.out.println("Notification MADE");
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		} finally {
@@ -781,7 +787,7 @@ public class JDBCConnector {
 	
 	public void deleteBookingRequest(String requester, Long listingNum) throws SQLException {
 		Statement statement = null;
-		String getListingOwnerSQL = "DELETE FROM LISTING WHERE LISTINGNUM = " + listingNum.longValue() + " AND REQUESTER = \'" + requester +"\';";
+		String getListingOwnerSQL = "DELETE FROM BOOKINGREQUEST WHERE LISTINGNUM = " + listingNum.longValue() + " AND REQUESTER = \'" + requester +"\';";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -796,6 +802,84 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
+	}
+	
+	public HashMap<Pair<Long,String>,BookingRequest> getBookingRequestsByOwner(String owner) throws SQLException{
+		Statement statement = null;
+		HashMap<Pair<Long,String>,BookingRequest> hm = new HashMap<Pair<Long,String>,BookingRequest>();
+		String getBookingRequestsByOwnerSQL = "SELECT B.LISTINGNUM,B.FROMDATE,B.TODATE,B.REQUESTER FROM BOOKINGREQUEST B JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM "
+				+ " AND OWNER = \'" + owner +"\';";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs= statement.executeQuery(getBookingRequestsByOwnerSQL);
+			while(rs.next()) {
+				hm.put(new Pair<Long, String>(rs.getLong("LISTINGNUM"),rs.getString("REQUESTER")),
+						new BookingRequest(LocalDate.parse(rs.getString("FROMDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+								LocalDate.parse(rs.getString("TODATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+								rs.getString("REQUESTER"),rs.getLong("LISTINGNUM")));
+			}
+			rs.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return hm;
+	}
+	
+	public BookingRequest getBookingRequest (String requester, Long listingNum) throws SQLException {
+		Statement statement = null;
+		BookingRequest br = null;
+		String getBookingRequestSQL = "SELECT * FROM BOOKINGREQUEST WHERE LISTINGNUM = " + listingNum + " AND REQUESTER = \'" + requester + "\';";	
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs= statement.executeQuery(getBookingRequestSQL);
+			if(rs.next()) {
+				br = new BookingRequest(LocalDate.parse(rs.getString("FROMDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+						LocalDate.parse(rs.getString("TODATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+						rs.getString("REQUESTER"),rs.getLong("LISTINGNUM"));
+			}
+			rs.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return br;
+	}
+	
+	public BookingRequest addBooking (String requester, Long listingNum) throws SQLException{
+		Statement statement = null;
+		BookingRequest br = this.getBookingRequest(requester, listingNum);
+		String addBookingSQL = "INSERT INTO BOOKING (SELECT * FROM BOOKINGREQUEST WHERE REQUESTER = \'"
+				+ requester + "\' AND LISTINGNUM = " + listingNum+");";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(addBookingSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return br;
 	}
 	
 	public Connection getDBConnection() {

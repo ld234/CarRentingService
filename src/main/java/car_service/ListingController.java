@@ -115,22 +115,6 @@ public class ListingController {
 	private StandardResponse createListing (Request request) {
 		//System.out.println(request.body());   
 		String json="";
-		JDBCConnector.listingCount += 1;
-		long listingNum = JDBCConnector.listingCount;
-
-		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
-		json = request.raw().getParameter("data");
-		if (request.raw().getParameter("data") == null) {
-			System.out.println("Cannot get image");
-		}
-		JSONObject jsonObj = null;
-		try {
-			jsonObj = new JSONObject(json);
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-		
 		String owner ="";
 		StandardResponse verifyRes = uc.verify(request);
 		if (verifyRes.getStatusCode() != 200) {
@@ -139,12 +123,20 @@ public class ListingController {
 		else {
 			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
-		jsonObj.put("listingNumber", listingNum);
+
+		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
+		json = request.raw().getParameter("data");
+		if (request.raw().getParameter("data") == null) {
+			System.out.println("Cannot get data");
+			return new StandardResponse(400, "Insufficient details");
+		}
+		JSONObject jsonObj = null;
 		try {
-			String imgPath = handleUpload(request, listingNum);
-			jsonObj.put("img", imgPath);
-		} catch (IOException | ServletException e1) {
-			e1.printStackTrace();
+			jsonObj = new JSONObject(json);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return new StandardResponse(400);
 		}
 		if (!fieldsRequiredExist(jsonObj)) {
 			return new StandardResponse(400, "Missing fields");
@@ -152,6 +144,18 @@ public class ListingController {
 		else if(!verifyListing(jsonObj.getString("rego"),owner)) {
 			return new StandardResponse(400, "Invalid car.");
 		}
+		
+		JDBCConnector.listingCount += 1;
+		long listingNum = JDBCConnector.listingCount;
+		
+		jsonObj.put("listingNumber", listingNum);
+		try {
+			String imgPath = handleUpload(request, listingNum);
+			jsonObj.put("img", imgPath);
+		} catch (IOException | ServletException e1) {
+			e1.printStackTrace();
+		}
+		
 		try {
 			CarListing cl = new GsonBuilder().create().fromJson(jsonObj.toString(), CarListing.class);
 			jc.addListing(owner,cl);
@@ -248,12 +252,12 @@ public class ListingController {
 		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
         Part filePart = request.raw().getPart("listing_img");
         try (InputStream inputStream = filePart.getInputStream()) {
-            OutputStream outputStream = new FileOutputStream(System.getProperty("user.dir")+File.separator+"listingImg" +File.separator+ listingNum +"."+filePart.getSubmittedFileName().split("\\.")[1]);
+            OutputStream outputStream = new FileOutputStream(System.getProperty("user.dir")+File.separator+"listingImg" +File.separator+ listingNum +"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1]);
             IOUtils.copy(inputStream, outputStream);
             outputStream.close();
         }
         System.out.println( "<h1>You uploaded this image:<h1><img src=");
-        return listingNum+"."+filePart.getContentType().split("\\/")[1];
+        return listingNum+"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1];
 	}
 
 	private boolean valuesInList(JSONObject jsObj) {
