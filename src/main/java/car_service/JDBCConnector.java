@@ -12,7 +12,7 @@ import org.json.JSONObject;
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -65,16 +65,18 @@ public class JDBCConnector {
 				+ "STR_TO_DATE(\'" + user.getDOB().toString() + "\', '%d-%m-%Y'),"
 				+ "\'RENTER\'"
 				+ ");";
-		String insertUserSQL2 = "INSERT INTO CARRENTER VALUES (\""
-				+ user.getUsername() + "\", \""
-				+ user.getDriverLicense() + "\", \""
-				+ user.getCardNumber()
-				+ "\");";
+		String insertUserSQL2 = "INSERT INTO CARRENTER VALUES (\'"
+				+ user.getUsername() + "\', \'"
+				+ user.getDriverLicense() + "\', \'"
+				+ user.getCardNumber() + "\'," 
+				+ "NULL);";
 
 		try {
 			connect();
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
+			System.out.println(insertUserSQL2);
+			System.out.println(insertUserSQL);
 			statement.execute(insertUserSQL);
 			statement.execute(insertUserSQL2);
 			System.out.println("New user created");
