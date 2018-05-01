@@ -16,16 +16,46 @@ public class JDBCConnector {
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
+	private static HashMap<String,Double> carPrices;
 	
 	public JDBCConnector() {
+		carPrices = new HashMap<String,Double>();
 		try {
 			listingCount = new Long(getListingCount());
+			loadCarPrice();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+	
+	public static double priceLookup (String brand) {
+		return carPrices.get(brand);
+	}
 
+	private void loadCarPrice() throws SQLException{
+		Statement statement = null;
+		String loadCarPriceSQL = "SELECT * FROM CARPRICE;";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(loadCarPriceSQL);
+			if (rs.next()) {
+				carPrices.put(rs.getString("BRAND"), rs.getDouble("RATE"));
+			}
+			rs.close();
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
 	// Query for existence of a username
 	public boolean usernameExists (String username) throws SQLException {
 		Statement statement = null;
@@ -285,11 +315,15 @@ public class JDBCConnector {
 					rs.getString("LASTNAME"),rs.getString("LICENSENUM"), 
 					new SimpleDateFormat(User.DATE_FORMAT).format(new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString("DOB"))),cc,notifList,
 					rs.getString("SOCIALMEDIALINK"));
+			rs.close();
 			if (!findCarOwner(username)) {
 				return cr;
 			}
 			else {
-				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()));
+				String selectOwnerSQL = "SELECT * FROM CAROWNER WHERE USERNAME = \'" +username + "\';";
+				rs = statement.executeQuery(selectOwnerSQL);
+				rs.next();
+				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()),rs.getString("BSB"),rs.getString("ACCOUNTNUMBER"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -588,7 +622,7 @@ public class JDBCConnector {
 									listingNum + ", " +
 									"STR_TO_DATE(\'" + br.getFrom().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))+ "\', '%d-%m-%Y'), "+
 									"STR_TO_DATE(\'" + br.getTo().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\', '%d-%m-%Y'), \'"+
-									br.getRenter()+"\');";
+									br.getRenter()+"\'," + br.getPrice() +");";
 
 		try {
 			connect();
@@ -598,7 +632,7 @@ public class JDBCConnector {
 			statement.execute(insertBookingRequestSQL);
 			System.out.println("Booking MADE");
 		} catch (SQLException e) {
-			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -662,7 +696,7 @@ public class JDBCConnector {
 	public void insertNotification(Notification notif) throws SQLException {
 		Statement statement = null;
 		int notifNum = this.getNotifCount() +1;
-		String insertBookingRequestSQL = "INSERT INTO NOTIFICATION VALUES ( " +
+		String insertNotiSQL = "INSERT INTO NOTIFICATION VALUES ( " +
 									notifNum+", \'" +
 									notif.getMessage() + "\', \'"+
 									notif.getType()+ "\',\'" +
@@ -672,9 +706,9 @@ public class JDBCConnector {
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			System.out.println(insertBookingRequestSQL);
+			System.out.println(insertNotiSQL);
                         // execute the SQL statement
-			statement.execute(insertBookingRequestSQL);
+			statement.execute(insertNotiSQL);
 			System.out.println("Notification MADE");
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -809,7 +843,7 @@ public class JDBCConnector {
 	public HashMap<Pair<Long,String>,BookingRequest> getBookingRequestsByOwner(String owner) throws SQLException{
 		Statement statement = null;
 		HashMap<Pair<Long,String>,BookingRequest> hm = new HashMap<Pair<Long,String>,BookingRequest>();
-		String getBookingRequestsByOwnerSQL = "SELECT B.LISTINGNUM,B.FROMDATE,B.TODATE,B.REQUESTER FROM BOOKINGREQUEST B JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM "
+		String getBookingRequestsByOwnerSQL = "SELECT B.LISTINGNUM,B.FROMDATE,B.TODATE,B.REQUESTER, B.PRICE FROM BOOKINGREQUEST B JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM "
 				+ " AND OWNER = \'" + owner +"\';";
 		try {
 			connect();
@@ -819,7 +853,7 @@ public class JDBCConnector {
 				hm.put(new Pair<Long, String>(rs.getLong("LISTINGNUM"),rs.getString("REQUESTER")),
 						new BookingRequest(LocalDate.parse(rs.getString("FROMDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
 								LocalDate.parse(rs.getString("TODATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-								rs.getString("REQUESTER"),rs.getLong("LISTINGNUM")));
+								rs.getString("REQUESTER"),rs.getLong("LISTINGNUM"),rs.getDouble("PRICE")));
 			}
 			rs.close();
 		} catch (SQLException e) {
@@ -846,7 +880,7 @@ public class JDBCConnector {
 			if(rs.next()) {
 				br = new BookingRequest(LocalDate.parse(rs.getString("FROMDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
 						LocalDate.parse(rs.getString("TODATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-						rs.getString("REQUESTER"),rs.getLong("LISTINGNUM"));
+						rs.getString("REQUESTER"),rs.getLong("LISTINGNUM"),rs.getDouble("PRICE"));
 			}
 			rs.close();
 		} catch (SQLException e) {
@@ -866,11 +900,41 @@ public class JDBCConnector {
 		Statement statement = null;
 		BookingRequest br = this.getBookingRequest(requester, listingNum);
 		String addBookingSQL = "INSERT INTO BOOKING (SELECT * FROM BOOKINGREQUEST WHERE REQUESTER = \'"
-				+ requester + "\' AND LISTINGNUM = " + listingNum+");";
+				+ requester + "\' AND LISTINGNUM = " + listingNum + ");";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			statement.execute(addBookingSQL);
+		} catch (SQLException e) {
+			e.getStackTrace();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return br;
+	}
+	
+	
+	public BookingRequest insertTransaction (String requester, Long listingNum) throws SQLException{
+		Statement statement = null;
+		BookingRequest br = this.getBookingRequest(requester, listingNum);
+		String insertTransactionSQL = "INSERT INTO TRANSACTION VALUES (" 
+								+ br.getListingNumber() + ", STR_TO_DATE(\'"
+								+ br.getFrom().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\','%d-%m-%Y'), STR_TO_DATE(\'"
+								+ br.getTo().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\','%d-%m-%Y'), \'"
+								+ br.getRenter() + "\', \'"
+								+ this.getListingOwner(listingNum.longValue()) + "\',"
+								+ br.getPrice()+");";
+		System.out.println(insertTransactionSQL);
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(insertTransactionSQL);
+			System.out.println(insertTransactionSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		} finally {
@@ -882,6 +946,35 @@ public class JDBCConnector {
 			}
 		}
 		return br;
+	}
+	
+	public void conductTransaction(String requester, Long listingNum) throws SQLException{
+		Statement statement = null;
+		BookingRequest br = this.getBookingRequest(requester, listingNum);
+		double amount = br.getPrice();
+		CarOwner co = (CarOwner) this.getUser(this.getListingOwner(listingNum));
+		CarRenter cr = (CarRenter) this.getUser(requester);
+		String deductCreditCardBalanceSQL = "UPDATE CREDITCARD SET BALANCE = BALANCE - " + amount 
+											+ " WHERE CARDNUMBER = \'" + cr.getCardNumber() + "\';";
+		String increaseAccBalanceSQL = "UPDATE BANKACCOUNT SET BALANCE = BALANCE + " + amount 
+										+ " WHERE BSB = \'"+ co.getBSB()+ "\' AND ACCOUNTNUMBER = \'" + co.getAccountNumber() + "\';" ;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(deductCreditCardBalanceSQL);
+			System.out.println(deductCreditCardBalanceSQL);
+			statement.execute(increaseAccBalanceSQL);
+			System.out.println(increaseAccBalanceSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
 	}
 	
 	public Connection getDBConnection() {

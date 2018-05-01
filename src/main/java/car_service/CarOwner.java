@@ -9,8 +9,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class CarOwner extends CarRenter{
-	HashMap <Long,CarListing> carListings;
-	HashMap < Pair<Long,String>,BookingRequest > bookingRequests;
+	private HashMap <Long,CarListing> carListings;
+	private HashMap < Pair<Long,String>,BookingRequest > bookingRequests;
+	private String bsb;
+	private String accountNumber;
 	
 	/*public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings) {
 		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard(),cr.getNotifList());
@@ -18,10 +20,20 @@ public class CarOwner extends CarRenter{
 		bookingRequests = new HashMap< Pair<Long,String>,BookingRequest>();
 	}*/
 	
-	public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings,HashMap< Pair<Long,String>,BookingRequest>br) {
+	public CarOwner(CarRenter cr, HashMap <Long,CarListing> carListings,HashMap< Pair<Long,String>,BookingRequest>br, String bsb, String accNum) {
 		super(cr.getUsername(),cr.getPassword(),cr.getFirstName(),cr.getLastName(),cr.getDriverLicense(),cr.getDOB(),cr.getCard(),cr.getNotifList(),cr.getSocialMediaLink());
 		this.carListings = carListings;
 		bookingRequests = br;
+		this.bsb = bsb;
+		accountNumber = accNum;
+	}
+	
+	public String getBSB() {
+		return bsb;
+	}
+	
+	public String getAccountNumber() {
+		return accountNumber;
 	}
 	
 	public void addCarListing(CarListing cl) {
@@ -58,14 +70,6 @@ public class CarOwner extends CarRenter{
 		Collection <BookingRequest> result = bookingRequests.values();
 		
 		return result; 
-	}
-	
-	public static List<LocalDate> getDatesBetween(LocalDate startDate, LocalDate endDate) { 
-		long numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate); 
-		return IntStream.iterate(0, i -> i + 1)
-			      .limit(numOfDaysBetween)
-			      .mapToObj(i -> startDate.plusDays(i))
-			      .collect(Collectors.toList()); 
 	}
 	
 	public BookingRequest addBookingRequest(BookingRequest br) {

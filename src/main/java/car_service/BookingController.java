@@ -5,7 +5,6 @@ import static spark.Spark.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 
 import org.json.JSONObject;
 
@@ -27,22 +26,24 @@ public class BookingController {
 		
 		post("/approve/:requester/:listingNum",(request,response) -> {
 			response.type("application/json");
-			StandardResponse res = approveListing(request);
+			StandardResponse res = approveBooking(request);
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res.getData());
 		});
 		
 		delete("/reject/:requester/:listingNum",(request,response) -> {
 			response.type("application/json");
-			StandardResponse res = rejectListing(request);
+			StandardResponse res = rejectBooking(request);
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res);
 		});
 	}
 	
-	private StandardResponse approveListing(Request request) {
+	// When listing is approved
+	private StandardResponse approveBooking(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String owner = null;
+		BookingRequest brResult = null;
 		String requester = request.params(":requester");
 		Long listingNum = Long.parseLong(request.params(":listingNum"));
 		if (verifyRes.getStatusCode() != 200) {
@@ -61,21 +62,20 @@ public class BookingController {
 		try {
 			// add new booking to database and to session
 			jc.addBooking(requester,listingNum);
+			//Notification
+			jc.insertNotification(new Notification("acceptedBooking",owner + " has approved your booking request on car listing " + listingNum,requester));
+			// add transaction history
+			jc.insertTransaction(requester, listingNum);
+			// add to unavailable dates of listing and to session
+			((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getCarListingList().get(listingNum).bookCarListing(requester, 
+						jc.getBookingRequest(requester, listingNum).getFrom(), jc.getBookingRequest(requester, listingNum).getTo());
+			// deduct bank account and add to bank account of owner, maybe some error checking LATER
+			jc.conductTransaction(requester, listingNum);
+			brResult = jc.getBookingRequest(requester, listingNum);
 			// delete booking request
 			jc.deleteBookingRequest(requester, listingNum);
-			// add transaction history
-//			jc.insertTransaction();
 			
-			// add to unavailable dates of listing and to session
 			
-			// deduct bank account and add to bank account of owner
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return new StandardResponse(500);
-		}
-		BookingRequest brResult;
-		try {
-			brResult = jc.getBookingRequest(requester, listingNum);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(500);
@@ -83,7 +83,7 @@ public class BookingController {
 		return new StandardResponse(200,brResult,true);
 	}
 	
-	private StandardResponse rejectListing(Request request) {
+	private StandardResponse rejectBooking(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String owner = null;
 		if (verifyRes.getStatusCode() != 200) {
@@ -145,7 +145,8 @@ public class BookingController {
 			jc.insertNotification(n);
 			
 		} catch (SQLException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
+			return new StandardResponse(400);
 		}
 		//NOTIF?
 		
