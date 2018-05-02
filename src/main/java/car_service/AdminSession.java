@@ -1,6 +1,6 @@
 package car_service;
 
-public class AdminSession extends Session{
+public class AdminSession extends UserSession{
 
 	public AdminSession(String username) {
 		super(username);

@@ -68,7 +68,6 @@ public class CarOwner extends CarRenter{
 	public Collection <BookingRequest>  getBookingRequestList() {
 
 		Collection <BookingRequest> result = bookingRequests.values();
-		
 		return result; 
 	}
 	

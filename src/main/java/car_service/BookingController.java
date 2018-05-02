@@ -37,6 +37,13 @@ public class BookingController {
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res);
 		});
+		
+//		get("/transactions", (request,response) -> {
+//			response.type("application/json");
+//			StandardResponse res = getTransactions(request);
+//			response.status(res.getStatusCode());
+//			return JsonUtil.toJson(res);
+//		});
 	}
 	
 	// When listing is approved
@@ -148,7 +155,6 @@ public class BookingController {
 //			e.printStackTrace();
 			return new StandardResponse(400);
 		}
-		//NOTIF?
 		
 		return new StandardResponse(200);
 	}

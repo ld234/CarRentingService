@@ -6,6 +6,7 @@ public class CarRenter extends User{
 	private String driverLicense;
 	private CreditCard creditCard;
 	private String socialMediaLink;
+	private ArrayList <Transaction> transactions;
 	
 	public CarRenter(String username, String password, String fn, String ln, String driverLicense,String dob,CreditCard creditCard,ArrayList<Notification> notifList,String link) {
 		super(username,password,fn,ln,dob,notifList);

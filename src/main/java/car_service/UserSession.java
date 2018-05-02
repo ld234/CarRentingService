@@ -4,12 +4,12 @@ import java.sql.SQLException;
 
 //import java.util.HashMap;
 
-public class Session {
+public class UserSession {
 	protected User user;
 	//private ArrayList<Message> messages;
 	//private HashMap<String,CarListing> carListing;
 	
-	public Session(String username) {
+	public UserSession(String username) {
 		try {
 			user = new JDBCConnector().getUser(username);
 		} catch (SQLException e) {
@@ -17,7 +17,7 @@ public class Session {
 		}
 	}
 	
-	public Session(User user) {
+	public UserSession(User user) {
 		this.user = user;
 	}
 	

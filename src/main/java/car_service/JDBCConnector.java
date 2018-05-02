@@ -12,7 +12,7 @@ import org.json.JSONObject;
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -965,6 +965,81 @@ public class JDBCConnector {
 			System.out.println(deductCreditCardBalanceSQL);
 			statement.execute(increaseAccBalanceSQL);
 			System.out.println(increaseAccBalanceSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public ArrayList<Message> getMessageSent(String username) throws SQLException{
+		Statement statement = null;
+		ArrayList<Message> result = new ArrayList<Message>();
+		String getMessageSentSQL = "SELECT * FROM MESSAGE WHERE SENDER = \'" + username +"\';";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getMessageSentSQL);
+			System.out.println(getMessageSentSQL);
+			
+			if (rs.next()) {
+				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return result;
+	}
+	
+	public ArrayList<Message> getMessageReceived(String username) throws SQLException{
+		Statement statement = null;
+		ArrayList<Message> result = new ArrayList<Message>();
+		String getMessageReceivedSQL = "SELECT * FROM MESSAGE WHERE RECEIVER = \'" + username +"\';";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getMessageReceivedSQL);
+			System.out.println(getMessageReceivedSQL);
+			
+			if (rs.next()) {
+				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
+			}
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return result;
+	}
+	
+	public void insertMessage(Message m) throws SQLException{
+		Statement statement = null;
+		String insertMessageSQL = "INSERT INTO MESSAGE VALUES( \'" + m.getSender() + "\', \'" 
+									+ m.getReceiver() +"\', \'" 
+									+ m.getMessage() +"\', " 
+									+ m.getTimestamp().getTime() +");";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(insertMessageSQL);
+			System.out.println(insertMessageSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		} finally {
