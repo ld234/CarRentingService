@@ -82,6 +82,9 @@ public class UserController {
 				connectedUsers.put(username, createSession(username));
 				s = connectedUsers.get(username);
 			}
+			else {
+				connectedUsers.get(username).user = jc.getUser(username);
+			}
 			User thisUser = s.getUser();	
 			String type = "";
 			String className = thisUser.getClass().getSimpleName();
@@ -135,7 +138,7 @@ public class UserController {
 			if (userType != null) {
 				System.out.println("Found username and password");
 				Date newDate = new Date();
-				// Session expires after 10 mins
+				// Session expires after 30 mins
 				newDate.setTime(newDate.getTime() + SESSION_DURATION);
 				connectedUsers.put(username,createSession(username));
 				String data = "\"token\": \"" + sign(username, newDate)+ "\"," + "\"type\":\""+ userType+"\", \"fullname\":\""+ connectedUsers.get(username).getUser().getFullName()+ "\"";
@@ -213,7 +216,7 @@ public class UserController {
 			subject = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		if (!valuesInList(jsObj))
-			return new StandardResponse(400);
+			return new StandardResponse(400,"Values sent not accepted.");
 		if (jsObj.has("password")){
 			if (!jsObj.has("oldPassword")) {
 				return new StandardResponse(400,"Missing old password");
@@ -392,7 +395,7 @@ public class UserController {
 	}
 	
 	private boolean valuesInList(JSONObject jsObj) {
-		String [] valueList = new String[] {"password","creditCard","oldPassword"};
+		String [] valueList = new String[] {"password","creditCard","oldPassword","accountNumber","bsb"};
 		int sz = jsObj.keySet().size();
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);

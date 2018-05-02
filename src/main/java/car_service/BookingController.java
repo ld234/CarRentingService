@@ -5,6 +5,7 @@ import static spark.Spark.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
 import org.json.JSONObject;
 
@@ -28,7 +29,11 @@ public class BookingController {
 			response.type("application/json");
 			StandardResponse res = approveBooking(request);
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			else {
+				return JsonUtil.toJson(res);
+			}
 		});
 		
 		delete("/reject/:requester/:listingNum",(request,response) -> {
@@ -38,12 +43,12 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
-//		get("/transactions", (request,response) -> {
-//			response.type("application/json");
-//			StandardResponse res = getTransactions(request);
-//			response.status(res.getStatusCode());
-//			return JsonUtil.toJson(res);
-//		});
+		get("/transactions", (request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getTransactions(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res);
+		});
 	}
 	
 	// When listing is approved
@@ -125,8 +130,6 @@ public class BookingController {
 			e.printStackTrace();
 			return new StandardResponse(500);
 		}
-		
-		
 		return new StandardResponse(200);
 	}
 	
@@ -157,5 +160,24 @@ public class BookingController {
 		}
 		
 		return new StandardResponse(200);
+	}
+	
+	public StandardResponse getTransactions(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String username = null;
+		
+		ArrayList<Transaction> transList = null;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			username = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		try {
+			transList = jc.getTransactions(username);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return new StandardResponse(200,transList,true);
 	}
 }
