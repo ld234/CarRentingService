@@ -261,13 +261,40 @@ public class JDBCConnector {
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);
 		System.out.println(keys[0]);
+		ArrayList<String> crFields = new ArrayList<String>();
+		ArrayList<String> coFields = new ArrayList<String>();
 		for (int i = 0; i < sz; i++) {
+			if (!keys[i].equals("cardNumber") && !keys[i].equals("accountNumber") && !keys[i].equals("accountNumber")) {
 				updateUserSQL+= keys[i]	+  " = \'" + jsObj.get(keys[i]) + "\'";
 				if (i < sz-1) {
 					updateUserSQL+= ", ";
 				}
+			}
+			else if (keys[i].equals("cardNumber")){
+				crFields.add(keys[i]);
+			}
+			else {
+				coFields.add(keys[i]);
+			}
+				
 		}
-		updateUserSQL += " WHERE USERNAME = \'"+ username + "\';";
+		String updateUserSQL2= "UPDATE CARRENTER SET ";
+		for (int i = 0; i < crFields.size(); i++) {
+			updateUserSQL2+= crFields.get(i)	+  " = \'" + jsObj.get(crFields.get(i)) + "\'";
+			if (i < crFields.size()-1) {
+				updateUserSQL2+= ", ";
+			}				
+		}
+		updateUserSQL2 += " WHERE USERNAME = \'"+ username + "\';";
+		
+		String updateUserSQL3= "UPDATE CARRENTER SET ";
+		for (int i = 0; i < coFields.size(); i++) {
+			updateUserSQL3 += coFields.get(i)	+  " = \'" + jsObj.get(coFields.get(i)) + "\'";
+			if (i < coFields.size()-1) {
+				updateUserSQL3 += ", ";
+			}				
+		}
+		updateUserSQL3 += " WHERE USERNAME = \'"+ username + "\';";
 
 		try {
 			connect();
@@ -275,9 +302,16 @@ public class JDBCConnector {
 			System.out.println(updateUserSQL);
                         // execute the SQL statement
 			statement.execute(updateUserSQL);
-			System.out.println("Password updated");
+			System.out.println(updateUserSQL2);
+            // execute the SQL statement
+			statement.execute(updateUserSQL2);
+
+			System.out.println(updateUserSQL3);
+			statement.execute(updateUserSQL3);
+			System.out.println("User is updated");
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println(e.getMessage());
 		} finally {
 			if (statement != null) {
