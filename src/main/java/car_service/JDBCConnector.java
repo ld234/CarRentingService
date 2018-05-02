@@ -299,15 +299,27 @@ public class JDBCConnector {
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			System.out.println(updateUserSQL);
                         // execute the SQL statement
-			statement.execute(updateUserSQL);
-			System.out.println(updateUserSQL2);
-            // execute the SQL statement
-			statement.execute(updateUserSQL2);
-
-			System.out.println(updateUserSQL3);
-			statement.execute(updateUserSQL3);
+			if (jsObj.has("password")) {
+				statement.execute(updateUserSQL);
+				System.out.println(updateUserSQL);
+			}
+			if (jsObj.has("cardNumber")) {
+				System.out.println(updateUserSQL2);
+	            // execute the SQL statement
+				statement.execute(updateUserSQL2);
+			}
+			
+			if (jsObj.has("cardNumber")) {
+				System.out.println(updateUserSQL2);
+	            // execute the SQL statement
+				statement.execute(updateUserSQL2);
+			}
+			
+			if (jsObj.has("accountNumber") && jsObj.has("bsb")) {
+				System.out.println(updateUserSQL3);
+				statement.execute(updateUserSQL3);
+			}
 			System.out.println("User is updated");
 
 		} catch (SQLException e) {

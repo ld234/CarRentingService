@@ -77,6 +77,7 @@ public class ChatController {
 			message = new Message(username,jsObj.getString("receiver"), jsObj.getString("message"));
 			try {
 				jc.insertMessage(message);
+				jc.insertNotification(new Notification("newMessage",jsObj.getString("receiver"), username + " messaged you."));
 			}
 			catch (SQLException e) {
 				e.printStackTrace();

@@ -265,6 +265,7 @@ public class UserController {
 			jsObj.remove("creditCard");
 			jsObj.put("cardNumber", cc.getString("cardNumber"));
 		}
+		
 		try {
 			jc.updateUser(jsObj, subject);
 		} catch (SQLException e) {
