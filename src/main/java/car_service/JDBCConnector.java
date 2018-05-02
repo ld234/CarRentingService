@@ -2,6 +2,7 @@ package car_service;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -288,7 +289,7 @@ public class JDBCConnector {
 		}
 		updateUserSQL2 += " WHERE USERNAME = \'"+ username + "\';";
 		
-		String updateUserSQL3= "UPDATE CARRENTER SET ";
+		String updateUserSQL3= "UPDATE CAROWNER SET ";
 		for (int i = 0; i < coFields.size(); i++) {
 			updateUserSQL3 += coFields.get(i)	+  " = \'" + jsObj.get(coFields.get(i)) + "\'";
 			if (i < coFields.size()-1) {
@@ -1111,8 +1112,8 @@ public class JDBCConnector {
 			
 			while(rs.next()) {
 				result.add(new Transaction(rs.getString("SENDER"),rs.getString("RECEIVER"),
-						rs.getDate("FROMDATE").toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-						rs.getDate("TODATE").toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+						Instant.ofEpochMilli(rs.getDate("FROMDATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate(),
+						Instant.ofEpochMilli(rs.getDate("TODATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate(),
 						rs.getLong("LISTINGNUM"),rs.getDouble("AMOUNT")));
 			}
 		} catch (SQLException e) {
