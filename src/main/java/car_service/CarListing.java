@@ -1,7 +1,6 @@
 package car_service;
 
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -23,7 +22,6 @@ public class CarListing {
 	private int capacity;
 	private double odometer;
 	private double price;
-	private double totalPrice;
 	private int rating;
 	private String img;
 	HashMap<LocalDate, Pair<LocalDate, String> >unavailable;
@@ -110,10 +108,15 @@ public class CarListing {
 	}
 	
 	public boolean bookCarListing( String username,LocalDate from, LocalDate to) {
-		
-		boolean returnVal = true;
-		
 		//Checks if booking is valid, the from is not within any range, the to is not within any range
+		if (!isAvailable(from,to))
+			return false;
+		//books carlisting on the given dates
+		unavailable.put(from,new Pair<LocalDate,String>(to,username));
+		return true;
+	}
+	
+	public boolean isAvailable(LocalDate from, LocalDate to) {
 		LocalDate [] rangeList = new LocalDate[unavailable.size()];
 		rangeList = unavailable.keySet().toArray(rangeList);
 		
@@ -126,9 +129,7 @@ public class CarListing {
 				}
 			}
 		}
-		//books carlisting on the given dates
-		unavailable.put(from,new Pair<LocalDate,String>(to,username));
-		return returnVal;
+		return true;
 	}
 	
 	public String getTransmission() {

@@ -113,6 +113,7 @@ public class UserController {
 			}
 			else if (type.equals("carOwner")) {
 				obj.addProperty("creditCard", ((CarRenter) thisUser).getCardNumber().substring(13, 16));
+				obj.add("bookingRequests", new GsonBuilder().create().toJsonTree(((CarOwner) thisUser).getBookingRequestList()));
 			}
 			obj.add("notifications",new Gson().toJsonTree(thisUser.getNotifList()));
 			return obj.toString();

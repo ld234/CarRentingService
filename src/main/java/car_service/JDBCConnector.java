@@ -457,6 +457,7 @@ public class JDBCConnector {
 	public HashMap<Long,CarListing> getCarListings(String carOwner) throws SQLException{
 		Statement statement = null;
 		String getListingsSQL = "SELECT * FROM LISTING WHERE OWNER = \'"+ carOwner +"\';";
+		String getAvailability = "SELECT * FROM BOOKING WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
 		HashMap<Long,CarListing> cls = new HashMap<Long,CarListing>();
 		try {
 			connect();
@@ -476,6 +477,15 @@ public class JDBCConnector {
 						                                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
 						                                         rs.getString("OWNER")));
 			}
+			rs.close();
+			System.out.println(getAvailability);
+			rs = statement.executeQuery(getAvailability);
+			while (rs.next()) {
+				cls.get(rs.getLong("LISTINGNUM")).bookCarListing(rs.getString("REQUESTER"), 
+						Instant.ofEpochMilli(rs.getDate("FROMDATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate(),
+						Instant.ofEpochMilli(rs.getDate("TODATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
+			}
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());

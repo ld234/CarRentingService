@@ -89,7 +89,6 @@ public class ChatController {
 	
 	private boolean fieldsRequiredExist(JSONObject jsonObj) {
 		try {
-			JSONObject cc = jsonObj.getJSONObject("creditCard");
 			if (jsonObj.getString("receiver").equals("") || jsonObj.getString("message").equals("")) {
 				return false;
 			}

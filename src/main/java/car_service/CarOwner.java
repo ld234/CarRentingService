@@ -1,12 +1,7 @@
 package car_service;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class CarOwner extends CarRenter{
 	private HashMap <Long,CarListing> carListings;
@@ -58,15 +53,7 @@ public class CarOwner extends CarRenter{
 		bookingRequests.remove(new Pair<Long,String>(listingNum,renter));
 	}
 	
-	public void bookingExists() {
-		Pair<Long,String> [] keys = null;
-		for (Pair<Long,String> key : bookingRequests.keySet().toArray(keys)) {
-			System.out.println(key.getKey() + " " + key.getValue());
-		}
-	}
-	
-	public Collection <BookingRequest>  getBookingRequestList() {
-
+	public Collection <BookingRequest> getBookingRequestList() {
 		Collection <BookingRequest> result = bookingRequests.values();
 		return result; 
 	}

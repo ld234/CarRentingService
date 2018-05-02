@@ -18,6 +18,8 @@ public class BookingController {
 	public BookingController(JDBCConnector jc, UserController uc) {
 		this.uc = uc;
 		this.jc = jc;
+		
+		// Request to rent a car
 		post("/request", (request,response)->{
 			StandardResponse res = requestCarListing(request);
 			response.status(res.getStatusCode());
@@ -25,6 +27,7 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Approve a booking request
 		post("/approve/:requester/:listingNum",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = approveBooking(request);
@@ -36,6 +39,7 @@ public class BookingController {
 			}
 		});
 		
+		// Reject a booking request
 		delete("/reject/:requester/:listingNum",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = rejectBooking(request);
@@ -43,11 +47,12 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// View booking transactions
 		get("/transactions", (request,response) -> {
 			response.type("application/json");
 			StandardResponse res = getTransactions(request);
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res);
+			return JsonUtil.toJson(res.getData());
 		});
 	}
 	
@@ -145,18 +150,24 @@ public class BookingController {
 		JSONObject jsObj = new JSONObject(request.body());
 		String from = jsObj.getString("from");
 		String to = jsObj.getString("to");
-		Long listingNum = jsObj.getLong("listingNumber");
+		Long listingNumber = jsObj.getLong("listingNumber");
 		BookingRequest br = new BookingRequest(LocalDate.parse(from,DateTimeFormatter.ofPattern("dd-MM-yyyy")),
-				LocalDate.parse(to,DateTimeFormatter.ofPattern("dd-MM-yyyy")),renter,listingNum.longValue());
+				LocalDate.parse(to,DateTimeFormatter.ofPattern("dd-MM-yyyy")),renter,listingNumber.longValue());
 		// WRITE TO DATABASE
+		LocalDate f = LocalDate.parse(from, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+		LocalDate t = LocalDate.parse(to, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+		
 		try {
-			Notification n = new Notification("newBooking",renter + " has requested to rent car listing " + listingNum, jc.getListingOwner(listingNum));
+			if(!((CarOwner)jc.getUser(jc.getListingOwner(listingNumber))).getCarListingList().get(listingNumber).isAvailable(f, t)) {
+				return new StandardResponse(400,"Listing " + listingNumber + " is booked from "+  from  +" to " + to);
+			}
+			Notification n = new Notification("newBooking",renter + " has requested to rent car listing " + listingNumber, jc.getListingOwner(listingNumber));
 			jc.insertBookingRequest(br,n);
 			jc.insertNotification(n);
 			
 		} catch (SQLException e) {
 //			e.printStackTrace();
-			return new StandardResponse(400);
+			return new StandardResponse(400,"Cannot request to book this listing.");
 		}
 		
 		return new StandardResponse(200);
