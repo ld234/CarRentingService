@@ -23,7 +23,7 @@ import spark.*;
 public class UserController {
 	private JDBCConnector jc;
 	private Key key;
-	static HashMap<String,Session> connectedUsers;
+	static HashMap<String,UserSession> connectedUsers;
 	private static final long SESSION_DURATION = 1200000; // 20 mins
 	
 	public UserController(JDBCConnector jc) {
@@ -31,7 +31,7 @@ public class UserController {
 		//key = MacProvider.generateKey();
 		byte[] bytes = new String("ServerSecret").getBytes();
 		key = new SecretKeySpec(bytes,"HS512");
-		connectedUsers = new HashMap<String,Session>();
+		connectedUsers = new HashMap<String,UserSession>();
 		
 		// Route for registration
 		post("/account", (request, response) -> {
@@ -77,7 +77,7 @@ public class UserController {
 				return JsonUtil.toJson(verifyRes);
 			}
 			String username = new JSONObject((String)verifyRes.getData()).getString("subject");
-			Session s = connectedUsers.get(username);
+			UserSession s = connectedUsers.get(username);
 			if (s == null) {
 				connectedUsers.put(username, createSession(username));
 				s = connectedUsers.get(username);
@@ -240,7 +240,7 @@ public class UserController {
 					String newpw = hashPassword(jsObj.getString("password"));
 					jsObj.put("password", newpw);
 					jsObj.remove("oldPassword");
-					Session s = connectedUsers.get(subject);
+					UserSession s = connectedUsers.get(subject);
 					if (s == null) {
 						System.out.println("Add new session");
 						connectedUsers.put(subject, createSession(subject));
@@ -260,8 +260,10 @@ public class UserController {
 		if (jsObj.has("creditCard")) {
 			JSONObject cc = jsObj.getJSONObject("creditCard");
 			if (!verifyCreditCard(cc.getString("cardNumber"),cc.getString("cardholder"),cc.getString("expiryDate"),cc.getInt("cardCvv"))) {
-				return new StandardResponse(400);
+				return new StandardResponse(400,"Incorrect credit card details");
 			}
+			jsObj.remove("creditCard");
+			jsObj.put("cardNumber", cc.getString("cardNumber"));
 		}
 		try {
 			jc.updateUser(jsObj, subject);
@@ -353,7 +355,7 @@ public class UserController {
 		return sha256hex;
 	}
 	
-	private Session createSession(String username) {
+	private UserSession createSession(String username) {
 		try {
 			if (jc.findCarOwner(username))
 				return new OwnerSession(username);
@@ -366,8 +368,8 @@ public class UserController {
 		return new AdminSession(username);
 	}
 	
-	public Session getSession(String username) {
-		Session s = connectedUsers.get(username);
+	public UserSession getSession(String username) {
+		UserSession s = connectedUsers.get(username);
 		if(s != null) return s;
 		return createSession(username);
 	}
