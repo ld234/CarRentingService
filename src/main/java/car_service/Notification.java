@@ -9,11 +9,21 @@ public class Notification {
 	private NotifType notif;
 	private String message;
 	private String receiver;
+	private boolean seen;
 	
 	public Notification(String type, String msg, String receiver) {
 		setNotifType(type);
 		message = msg;
 		this.receiver = receiver;
+		seen = false;
+	}
+	
+	public void seen () {
+		seen = true;
+	}
+	
+	public boolean getSeen () {
+		return seen;
 	}
 	
 	public void setReceiver(String r ) {

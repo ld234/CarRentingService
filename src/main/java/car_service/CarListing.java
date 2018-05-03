@@ -22,7 +22,7 @@ public class CarListing {
 	private int capacity;
 	private double odometer;
 	private double price;
-	private int rating;
+	private double rating;
 	private String img;
 	HashMap<LocalDate, Pair<LocalDate, String> >unavailable;
 	String owner;
@@ -152,6 +152,9 @@ public class CarListing {
 		}
 	}
 	
+	public double getRating()	{
+		return rating;
+	}
 	//for testing*************************************************************
 	public void showBooking() {
 		Iterator<Entry<LocalDate, Pair<LocalDate, String>>> it = unavailable.entrySet().iterator();

@@ -114,6 +114,8 @@ public class UserController {
 			else if (type.equals("carOwner")) {
 				obj.addProperty("creditCard", ((CarRenter) thisUser).getCardNumber().substring(13, 16));
 				obj.add("bookingRequests", new GsonBuilder().create().toJsonTree(((CarOwner) thisUser).getBookingRequestList()));
+				obj.addProperty("accountNumber", ((CarOwner)thisUser).getAccountNumber());
+				obj.addProperty("bsb", ((CarOwner)thisUser).getBSB());
 			}
 			obj.add("notifications",new Gson().toJsonTree(thisUser.getNotifList()));
 			return obj.toString();
@@ -360,7 +362,7 @@ public class UserController {
 		return sha256hex;
 	}
 	
-	private UserSession createSession(String username) {
+	UserSession createSession(String username) {
 		try {
 			if (jc.findCarOwner(username))
 				return new OwnerSession(username);

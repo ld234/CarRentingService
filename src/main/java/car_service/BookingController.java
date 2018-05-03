@@ -9,6 +9,9 @@ import java.util.ArrayList;
 
 import org.json.JSONObject;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+
 import spark.Request;
 
 public class BookingController {
@@ -18,6 +21,13 @@ public class BookingController {
 	public BookingController(JDBCConnector jc, UserController uc) {
 		this.uc = uc;
 		this.jc = jc;
+		
+		get("/request" , (request,response)->{
+			StandardResponse res = getBookingRequests(request);
+			response.status(res.getStatusCode());
+			response.type("application/json");
+			return JsonUtil.toJson(res.getData());
+		});
 		
 		// Request to rent a car
 		post("/request", (request,response)->{
@@ -47,6 +57,13 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		get("/transactions", (request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getTransactions(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res.getData());
+		});
+		
 		// View booking transactions
 		get("/transactions", (request,response) -> {
 			response.type("application/json");
@@ -54,6 +71,34 @@ public class BookingController {
 			response.status(res.getStatusCode());
 			return JsonUtil.toJson(res.getData());
 		});
+	}
+	
+	private StandardResponse getBookingRequests(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String owner = null;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		JsonObject obj = new JsonObject();
+		UserSession s = UserController.connectedUsers.get(owner);
+		if (s == null) {
+			UserController.connectedUsers.put(owner, uc.createSession(owner));
+			s = UserController.connectedUsers.get(owner);
+		}
+		else {
+			try {
+				UserController.connectedUsers.get(owner).user = jc.getUser(owner);
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return new StandardResponse(500,"Cannot get booking requests");
+			}
+		}
+		User thisUser = s.getUser();	
+		obj.add("bookingRequests", new GsonBuilder().create().toJsonTree(((CarOwner) thisUser).getBookingRequestList()));
+		return new StandardResponse(200,obj,true);
 	}
 	
 	// When listing is approved

@@ -1139,6 +1139,26 @@ public class JDBCConnector {
 		return result;
 	}
 	
+	public void setSeen(long notiNumber) throws SQLException {
+		Statement statement = null;
+		String insertMessageSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE NOTIFNUMBER = ( " + notiNumber +");";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(insertMessageSQL);
+			System.out.println(insertMessageSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
 	public Connection getDBConnection() {
 		return dbConnection;
 	}
