@@ -122,6 +122,8 @@ public class BookingController {
 			return new StandardResponse(401,"Not authorised");
 		}
 		try {
+			LocalDate f = jc.getBookingRequest(requester, listingNum).getFrom();
+			LocalDate t = jc.getBookingRequest(requester, listingNum).getTo();
 			// add new booking to database and to session
 			jc.addBooking(requester,listingNum);
 			//Notification
@@ -129,14 +131,14 @@ public class BookingController {
 			// add transaction history
 			jc.insertTransaction(requester, listingNum);
 			// add to unavailable dates of listing and to session
-			((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getCarListingList().get(listingNum).bookCarListing(requester, 
-						jc.getBookingRequest(requester, listingNum).getFrom(), jc.getBookingRequest(requester, listingNum).getTo());
+			((CarOwner)((OwnerSession)uc.getSession(owner)).getUser()).getCarListingList().get(listingNum)
+								.bookCarListing(requester, f, t);
 			// deduct bank account and add to bank account of owner, maybe some error checking LATER
 			jc.conductTransaction(requester, listingNum);
 			brResult = jc.getBookingRequest(requester, listingNum);
 			// delete booking request
 			jc.deleteBookingRequest(requester, listingNum);
-			
+			jc.deleteAvailability(listingNum,CarListing.getDatesBetween(f, t));
 			
 		} catch (SQLException e) {
 			e.printStackTrace();

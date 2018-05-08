@@ -24,7 +24,7 @@ public class UserController {
 	private JDBCConnector jc;
 	private Key key;
 	static HashMap<String,UserSession> connectedUsers;
-	private static final long SESSION_DURATION = 3600000; // 20 mins
+	private static final long SESSION_DURATION = 10800000; // 60 mins
 	
 	public UserController(JDBCConnector jc) {
 		this.jc = jc;

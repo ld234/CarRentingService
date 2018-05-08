@@ -31,6 +31,7 @@ public class ListingController {
 	public ListingController(JDBCConnector jc, UserController uc) {
 		this.jc = jc;
 		this.uc= uc;
+		
 		// Post a new car listing
 		post("/list", (request,response) -> {
 			response.type("application/json");
@@ -51,7 +52,7 @@ public class ListingController {
 			StandardResponse res = addNewCar(request);
 			response.status(res.getStatusCode());
 			if (res.getStatusCode() == 200) 
-				return JsonUtil.toJson(res.getData());
+				return res.getData().toString();
 			return JsonUtil.toJson(res);
 		});
 		
@@ -82,7 +83,7 @@ public class ListingController {
 		});
 		
 		// Get listings by owner
-		get("/list/",(request,response) -> {
+		get("/list",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = getListingsByOwner(request);
 			response.status(res.getStatusCode());
@@ -262,7 +263,7 @@ public class ListingController {
 			jc.addCar(owner, new Car(jsonObj.getString("rego"),jsonObj.getString("brand"),jsonObj.getString("model"),
 					jsonObj.getString("location"),jsonObj.getString("colour"),jsonObj.getString("transmission"),jsonObj.getInt("year"),
 					jsonObj.getInt("capacity"),jsonObj.getInt("odometer"),jsonObj.getString("img"),owner));
-		} catch (IOException | ServletException | JSONException | SQLException e1) {
+		} catch (IOException | ServletException | JSONException | NullPointerException| SQLException e1) {
 			e1.printStackTrace();
 			System.out.println("SUCKS");
 			return new StandardResponse(400, "Cannot create new car");
@@ -418,7 +419,7 @@ public class ListingController {
 	}
 	
 	// Upload car listing image and returns image path
-	private String handleUpload(Request request,String username) throws IOException, ServletException, SQLException {
+	private String handleUpload(Request request,String username) throws IOException, ServletException, SQLException, NullPointerException {
 		
 		System.out.println(System.getProperty("user.dir")+File.separator+"listingImg");
 		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));

@@ -25,6 +25,15 @@ public class CarListing {
 		rating = 0;
 	}
 	
+	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner) {
+		carListingNumber = carListingNum;
+		car = new Car(rego,brand,model,location,colour,transType,year,capacity,odometer,imgPath,owner);
+		unavailable = new HashSet<LocalDate>();
+		setPrice(JDBCConnector.priceLookup(brand));
+		available = new HashSet<LocalDate>();
+		rating = 0;
+	}
+	
 	public CarListing(long carListingNum, String rego, HashSet<LocalDate> avail) {
 		carListingNumber = carListingNum;
 		try {
@@ -35,6 +44,19 @@ public class CarListing {
 		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(car.getBrand()));
 		available = avail;
+		rating = 0;
+	}
+	
+	public CarListing(long carListingNum, String rego) {
+		carListingNumber = carListingNum;
+		try {
+			car = new JDBCConnector().getCar(rego);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		unavailable = new HashSet<LocalDate>();
+		setPrice(JDBCConnector.priceLookup(car.getBrand()));
+		available = new HashSet<LocalDate>();
 		rating = 0;
 	}
 	
@@ -113,13 +135,24 @@ public class CarListing {
 			}
 		}
 		else {
+			System.out.println("available is not infinite");
+			printAvail();
 			for (LocalDate d : dates) {
-				if (!available.contains(d))
+				if (!available.contains(d)) {
+					System.out.println(d.toString());
 					return false;
+				}
 			}
 			
 		}
 		return true;
+	}
+	
+	public void printAvail() {
+		System.out.println(available.size());
+		for (LocalDate d : available) {
+			System.out.println(d.toString());
+		}
 	}
 	
 	public String getTransmission() {
@@ -139,14 +172,21 @@ public class CarListing {
 		}
 	}
 	
+	public void addAvailableDate(LocalDate d) {
+		available.add(d);
+	}
+	
 	public double getRating()	{
 		return rating;
 	}
 	
-	public static List<LocalDate> getDatesBetween(
-	  LocalDate startDate, LocalDate endDate) { 
+	public void setAvailable(HashSet<LocalDate> a)	{
+		available = a;
+	}
+	
+	public static List<LocalDate> getDatesBetween(LocalDate startDate, LocalDate endDate) { 
 	  
-	    long numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate); 
+	    long numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate.plusDays(1)); 
 	    return IntStream.iterate(0, i -> i + 1)
 	      .limit(numOfDaysBetween)
 	      .mapToObj(i -> startDate.plusDays(i))

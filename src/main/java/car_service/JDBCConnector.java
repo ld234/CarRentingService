@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import org.json.JSONObject;
 
@@ -446,9 +447,13 @@ public class JDBCConnector {
 	// Get a map of listings
 	public HashMap<Long,CarListing> getCarListings(String carOwner) throws SQLException{
 		Statement statement = null;
-		String getListingsSQL = "SELECT * FROM LISTING L JOIN CAR C ON L.REGO = C.REGO WHERE C.OWNER = \'"+ carOwner +"\';";
-		String getAvailability = "SELECT * FROM BOOKING WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
+		String getListingsSQL = "SELECT * FROM LISTING L JOIN CAR C ON L.REGO = C.REGO "
+				+ "WHERE C.OWNER = \'"+ carOwner +"\';";
+//		String getUnvailability = "SELECT * FROM LISTING WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
+//		String getAvailability = "SELECT * FROM AVAILABILITY WHERE LISTINGNUM = ";
+//		String getListingsByOwner = "(SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
 		HashMap<Long,CarListing> cls = new HashMap<Long,CarListing>();
+		String getAvailByListing= "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = ";
 		HashSet<LocalDate> avail = new HashSet<LocalDate>();
 		try {
 			connect();
@@ -456,6 +461,8 @@ public class JDBCConnector {
                         // execute the SQL statement
 			
 			ResultSet rs = statement.executeQuery(getListingsSQL);
+			
+			
 			while(rs.next()) {
 				cls.put(rs.getLong("LISTINGNUM"), new CarListing(rs.getLong("LISTINGNUM"),
 																 rs.getString("REGO"),
@@ -467,19 +474,25 @@ public class JDBCConnector {
 						                                         rs.getInt("YEAR"),
 						                                         rs.getInt("CAPACITY"),
 						                                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
-						                                         rs.getString("OWNER"),
-						                                         avail));
+						                                         rs.getString("OWNER")
+						                                         ));
 			}
-			rs.close();
-			System.out.println(getAvailability);
-			rs = statement.executeQuery(getAvailability);
-			while (rs.next()) {
-				cls.get(rs.getLong("LISTINGNUM")).bookCarListing(rs.getString("REQUESTER"), 
-						Instant.ofEpochMilli(rs.getDate("FROMDATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate(),
-						Instant.ofEpochMilli(rs.getDate("TODATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
+			for (Long l : cls.keySet()) {
+				rs = statement.executeQuery(getAvailByListing  + l +";");
+				avail.clear();
+				while(rs.next()) {
+					avail.add(Instant.ofEpochMilli(rs.getDate("AVAILDATE").getTime())
+							.atZone(ZoneId.systemDefault()).toLocalDate());
+	//				cls.get(rs.getLong("LISTINGNUM")).bookCarListing(rs.getString("REQUESTER"), 
+	//						Instant.ofEpochMilli(rs.getDate("FROMDATE").getTime())
+	//						.atZone(ZoneId.systemDefault()).toLocalDate(),
+	//						Instant.ofEpochMilli(rs.getDate("TODATE").getTime())
+	//						.atZone(ZoneId.systemDefault()).toLocalDate());
+				}
+				System.out.println(avail.size());
+				cls.get(l).setAvailable(avail);
+				rs.close();	
 			}
-			rs.close();
-
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		} finally {
@@ -910,15 +923,16 @@ public class JDBCConnector {
 		Statement statement = null;
 		String from = criteria.remove("from");
 		String to  = criteria.remove("to");
+		List<LocalDate> datesBtween = CarListing.getDatesBetween(LocalDate.parse(from,DateTimeFormatter.ofPattern("dd-MM-yyyy")), 
+				LocalDate.parse(to,DateTimeFormatter.ofPattern("dd-MM-yyyy")));
 		int sz = criteria.size();
-		String searchCarListingSQL = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
-									+ " FROM BOOKING B RIGHT OUTER JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM JOIN CAR ON L.REGO = CAR.REGO "
-									+ "WHERE "+
-									"( FROMDATE > STR_TO_DATE(\'" + to + "\', '%d-%m-%Y') OR "+
-									"TODATE < STR_TO_DATE(\'" + from + "\', '%d-%m-%Y')) AND "+
-									"FROMDATE IN (SELECT AVAILDATE FROM AVAILABILITY) AND ";
-		String searchCarListingSQL2 = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
-									+ " FROM LISTING L JOIN CAR C ON L.REGO = C.REGO WHERE ";
+
+		String searchCarListingSQL = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,"
+									+ "YEAR, CAPACITY, ODOMETER,L.OWNER,IMAGEPATH "
+									+ "FROM AVAILABILITY A JOIN LISTING L ON A.LISTINGNUM = L.LISTINGNUM "
+									+ "JOIN CAR C ON C.REGO = L.REGO "
+									+ "WHERE ";
+		
 		
 		String [] keys = new String[sz];
 		keys = criteria.keySet().toArray(keys);
@@ -930,15 +944,22 @@ public class JDBCConnector {
 				searchCarListingSQL += keys[i]	+  " = \'" + criteria.get(keys[i]) + "\'";
 			else if (keys[i].toLowerCase().equals("location") )
 				searchCarListingSQL += keys[i]	+  " LIKE \'%" + criteria.get(keys[i]) + "%\'";
-			else if (keys[i].toLowerCase().equals("from") )
-				searchCarListingSQL += keys[i]	+  " " + criteria.get(keys[i]) + "%\'";
-			else if (keys[i].toLowerCase().equals("to") )
-			if (i < sz-1) {
-				searchCarListingSQL += " AND ";
-			}
+//			else if (keys[i].toLowerCase().equals("from") )
+//				searchCarListingSQL += keys[i]	+  " " + criteria.get(keys[i]) + "%\'";
+//			else if (keys[i].toLowerCase().equals("to") )
+			searchCarListingSQL += " AND ";
 		}
-		searchCarListingSQL += " UNION SELECT * FROM LISTING WHERE LISTINGNUM NOT IN (SELECT LISTINGNUM FROM BOOKING) ";
-		searchCarListingSQL +=  ";";
+		searchCarListingSQL += "AVAILDATE IN (";
+		for (int i= 0; i <  datesBtween.size(); i++ ) {
+			searchCarListingSQL += "STR_TO_DATE(\'" 
+								+ datesBtween.get(i).format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+								+ "\',\'%d-%m-%Y\')";
+			if(i<datesBtween.size()-1)
+				searchCarListingSQL+=",";
+		}
+		searchCarListingSQL += ")";
+		searchCarListingSQL += " GROUP BY LISTINGNUM HAVING COUNT(*) = " + datesBtween.size() + ";";
+
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -975,6 +996,34 @@ public class JDBCConnector {
 		return result;
 	}
 	
+	public void deleteAvailability(Long listingNum, List<LocalDate> datesDeleted) throws SQLException {
+		Statement statement = null;
+		String deleteAvailSQL = "DELETE FROM AVAILABILITY WHERE AVAILDATE IN (";
+		for (int i = 0; i < datesDeleted.size(); i++ ) {
+			deleteAvailSQL += "STR_TO_DATE(\'"+datesDeleted.get(i).format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) +"\',\'"
+					+ "%d-%m-%Y\')";
+			if (i < datesDeleted.size()-1) {
+				deleteAvailSQL+=",";
+			}
+		}
+		deleteAvailSQL += ");";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(deleteAvailSQL);
+			System.out.println(deleteAvailSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
 	public void deleteBookingRequest(String requester, Long listingNum) throws SQLException {
 		Statement statement = null;
 		String getListingOwnerSQL = "DELETE FROM BOOKINGREQUEST WHERE LISTINGNUM = " + listingNum.longValue() + " AND REQUESTER = \'" + requester +"\';";
@@ -996,15 +1045,17 @@ public class JDBCConnector {
 	
 	public HashSet<LocalDate> getAvailableDates(long listingNumber) throws SQLException{
 		Statement statement = null;
-		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ getListingOwner(listingNumber) +"\');";
+		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = " +listingNumber +";";
 		HashSet<LocalDate> avail = new HashSet<LocalDate>();
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			ResultSet rs = statement.executeQuery(getDatesAvail);
+			System.out.println(getDatesAvail);
 			while(rs.next()) {
 				avail.add(LocalDate.parse(rs.getString("AVAILDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 			}
+			
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
