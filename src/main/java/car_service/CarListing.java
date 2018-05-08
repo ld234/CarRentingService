@@ -1,79 +1,73 @@
 package car_service;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
-
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class CarListing {
-	private long listingNumber;
-	private String rego;
-	private String brand;
-	private String model;
-	private String location;
-	private String colour;
-	public static enum transmission{
-		auto,
-		manual
-	};
-	private transmission transType;
-	private int year;
-	private int capacity;
-	private double odometer;
+	private Car car;
+	HashSet<LocalDate> unavailable;
+	HashSet<LocalDate> available;
 	private double price;
 	private double rating;
-	private String img;
-	HashMap<LocalDate, Pair<LocalDate, String> >unavailable;
-	String owner;
+	private long carListingNumber ;
 	
-	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner) {
-		unavailable = new HashMap< LocalDate,Pair<LocalDate, String> >();
-		listingNumber = carListingNum;
-		this.rego= rego;
-		this.brand= brand;
-		this.model= model;
-		this.location= location;
-		this.colour= colour;
-		this.year= year;
-		this.capacity= capacity;
-		this.odometer= odometer;
-		setTransmission(transType);
-		img = imgPath;
-		this.owner = owner;
+	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner, HashSet<LocalDate> avail) {
+		carListingNumber = carListingNum;
+		car = new Car(rego,brand,model,location,colour,transType,year,capacity,odometer,imgPath,owner);
+		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(brand));
+		available = avail;
+		rating = 0;
+	}
+	
+	public CarListing(long carListingNum, String rego, HashSet<LocalDate> avail) {
+		carListingNumber = carListingNum;
+		try {
+			car = new JDBCConnector().getCar(rego);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		unavailable = new HashSet<LocalDate>();
+		setPrice(JDBCConnector.priceLookup(car.getBrand()));
+		available = avail;
+		rating = 0;
 	}
 	
 	public String getOwner() {
-		return owner;
+		return car.getOwner();
 	}
 	
 	public String getImgPath() {
-		return img;
+		return car.getImgPath();
 	}
 	
 	public long getListingNumber() {
-		return listingNumber;
+		return carListingNumber;
 	}
 	
 	public String getRego() {
-		return rego;
+		return car.getRego();
 	}
 	
 	public String getBrand() {
-		return brand;
+		return car.getBrand();
 	}
 	
 	public int getYear() {
-		return year;
+		return car.getYear();
 	}
 	
 	public String getModel() {
-		return model;
+		return car.getModel();
 	}
 	
 	public String getColour() {
-		return colour;
+		return car.getColour();
 	}
 	
 	public double getPrice() {
@@ -81,30 +75,20 @@ public class CarListing {
 	}
 	
 	public String getLocation() {
-		return location;
+		return car.getLocation();
 	}
 	
 	public int getCapacity() {
-		return capacity;
+		return car.getCapacity();
 	}
 	
 	public double getOdometer() {
-		return odometer;
+		return car.getOdometer();
 	}
 	
 	//set the transmission to either manual or auto
-	public void setTransmission(String transmissionType)
-	{
-		if (transmissionType.toLowerCase().equals("auto"))
-		{
-			this.transType = transmission.auto;
-		}
-		else if(transmissionType.toLowerCase().equals("manual")) {
-			this.transType = transmission.manual;
-		}
-		else {
-			System.err.println("Error: wrong type of transmission");
-		}
+	public void setTransmission(String transmissionType){
+		car.setTransmission(transmissionType);
 	}
 	
 	public boolean bookCarListing( String username,LocalDate from, LocalDate to) {
@@ -112,39 +96,42 @@ public class CarListing {
 		if (!isAvailable(from,to))
 			return false;
 		//books carlisting on the given dates
-		unavailable.put(from,new Pair<LocalDate,String>(to,username));
+		for (LocalDate d : getDatesBetween(from,to))
+			unavailable.add(d);
 		return true;
 	}
 	
 	public boolean isAvailable(LocalDate from, LocalDate to) {
-		LocalDate [] rangeList = new LocalDate[unavailable.size()];
-		rangeList = unavailable.keySet().toArray(rangeList);
-		
-		if (rangeList != null) {
-			for(LocalDate f : rangeList )
-			{
-				boolean valid = (f.isAfter(to) || (unavailable.get(f).getKey().isBefore(from)));
-				if (!valid) {
+//		LocalDate [] rangeList = new LocalDate[unavailable.size()];
+//		rangeList = unavailable.toArray(rangeList);
+		List<LocalDate> dates = getDatesBetween(from,to);
+		if (available.contains(null)) {
+			for(LocalDate d : dates) {
+				if (unavailable.contains(d)) {
 					return false;
 				}
 			}
+		}
+		else {
+			for (LocalDate d : dates) {
+				if (!available.contains(d))
+					return false;
+			}
+			
 		}
 		return true;
 	}
 	
 	public String getTransmission() {
-		if (transType == transmission.auto)
-			return "auto";
-		else
-			return "manual";
+		return car.getTransmission();
 	}
 	
 	
 	private void setPrice(double p) {
-		if (year > 2000 && year <=2010) {
+		if (car.getYear() > 2000 && car.getYear() <=2010) {
 			this.price = p*0.75;
 		}
-		else if (year <= 1999) {
+		else if (car.getYear() <= 1999) {
 			this.price = p*0.5;
 		}
 		else {
@@ -155,12 +142,19 @@ public class CarListing {
 	public double getRating()	{
 		return rating;
 	}
-	//for testing*************************************************************
-	public void showBooking() {
-		Iterator<Entry<LocalDate, Pair<LocalDate, String>>> it = unavailable.entrySet().iterator();
-	    while (it.hasNext()) {
-	    	Entry<LocalDate, Pair<LocalDate, String>> pair = it.next();
-	        System.out.println(pair.getKey() + " = " + pair.getValue());
-	    }
+	
+	public static List<LocalDate> getDatesBetween(
+	  LocalDate startDate, LocalDate endDate) { 
+	  
+	    long numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate); 
+	    return IntStream.iterate(0, i -> i + 1)
+	      .limit(numOfDaysBetween)
+	      .mapToObj(i -> startDate.plusDays(i))
+	      .collect(Collectors.toList()); 
+	}
+	
+	public HashSet<LocalDate> getAvailableDates(){
+		return available;
+		
 	}
 }

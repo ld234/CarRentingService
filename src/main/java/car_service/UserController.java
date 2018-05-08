@@ -24,7 +24,7 @@ public class UserController {
 	private JDBCConnector jc;
 	private Key key;
 	static HashMap<String,UserSession> connectedUsers;
-	private static final long SESSION_DURATION = 1200000; // 20 mins
+	private static final long SESSION_DURATION = 3600000; // 20 mins
 	
 	public UserController(JDBCConnector jc) {
 		this.jc = jc;
@@ -121,6 +121,7 @@ public class UserController {
 			return obj.toString();
 		});
 		
+		
 		/*post("/verify", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = verify(request);
@@ -128,6 +129,8 @@ public class UserController {
 			return JsonUtil.toJson(res);
 		}); */
 	}
+	
+	
 	
 	// Login
 	private StandardResponse login (Request request) {

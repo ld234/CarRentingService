@@ -6,18 +6,22 @@ import spark.utils.IOUtils;
 import static spark.Spark.*;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import javax.servlet.*;
 import javax.servlet.http.*;
+
 import java.io.*;
 
 public class ListingController {
@@ -27,6 +31,7 @@ public class ListingController {
 	public ListingController(JDBCConnector jc, UserController uc) {
 		this.jc = jc;
 		this.uc= uc;
+		// Post a new car listing
 		post("/list", (request,response) -> {
 			response.type("application/json");
 			StandardResponse res = createListing(request);
@@ -40,6 +45,17 @@ public class ListingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Add a new car to account
+		post("/car", (request,response) -> {
+			response.type("application/json");
+			StandardResponse res = addNewCar(request);
+			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200) 
+				return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
+		});
+		
+		// Edit car listing
 		put("/list/:listingNum", (request,response) -> {
 			response.type("application/json");
 			StandardResponse res = editListing(request);
@@ -60,7 +76,30 @@ public class ListingController {
 			response.type("application/json");
 			StandardResponse res = getListing(request);
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
+		});
+		
+		// Get listings by owner
+		get("/list/",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getListingsByOwner(request);
+			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
+		});
+		
+		// Get car info
+		get("/car/:rego",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getCar(request);
+			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			else
+				return JsonUtil.toJson(res);
 		});
 		
 		// Search car listing
@@ -69,8 +108,21 @@ public class ListingController {
 			StandardResponse res = search(request);
 			request.queryParams("");
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
 		});
+		
+		// Become a car owner
+		put("/upgrade",(request,response)->{
+			response.type("application/json");
+			StandardResponse res = upgrade(request);
+			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200)
+				return res.getData().toString();
+			return JsonUtil.toJson(res);
+		});
+		
 		
 		/*post("/carimg", (request,response) -> {
 			this.handleUpload(request);
@@ -82,6 +134,141 @@ public class ListingController {
 			}
 			return JsonUtil.toJson(new StandardResponse(200,listingNum));
 		});*/
+	}
+	
+	private StandardResponse getListingsByOwner(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String owner;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		ArrayList<CarListing> result = new ArrayList<CarListing>();
+		HashMap<Long, CarListing> carListings = null;
+		try {
+			carListings = jc.getCarListings(owner);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Cannot get listings by owner");
+		}
+		for (Long l : carListings.keySet()) {
+			result.add(carListings.get(l));
+		}
+		return new StandardResponse(200,result,true);
+	}
+	
+	
+	private StandardResponse getCar(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String rego = request.params(":rego");
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+
+		Car c = null;
+		
+		try {
+			c = jc.getCar(rego);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400, "Failed to get car info");
+		}
+		return new StandardResponse(200,c,true);
+	}
+	
+	private StandardResponse upgrade(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String renter = null;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			renter = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}	
+		
+		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
+		String req = request.raw().getParameter("data");
+		if (req == null){
+			return new StandardResponse(400,"Cannot upgrade account");
+		}
+		JSONObject jsObj = new JSONObject(req);
+		
+		try {
+			jc.upgradeAccount(renter,jsObj.getString("accountNumber"), jsObj.getString("bsb"));
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Invalid fields");
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Cannot upgrade account");
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Null pointer exception");
+		}
+		// NULL
+		
+		StandardResponse addCarResponse = this.addNewCar(request);
+		if (addCarResponse.getStatusCode() != 200) {
+			return addCarResponse;
+		}
+		JSONObject jsonObj = (JSONObject) addCarResponse.getData();
+		if (jsonObj == null) {
+			System.out.println("NULL jsonObject");
+		}
+		
+		
+		return new StandardResponse(200,jsonObj,true);
+	}
+	
+	private StandardResponse addNewCar(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String json="";
+		String owner ="";
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
+		json = request.raw().getParameter("data");
+		if (json == null) {
+			System.out.println("Cannot get data 2");
+			return new StandardResponse(400, "Insufficient details");
+		}
+		JSONObject jsonObj = null;
+		try {
+			jsonObj = new JSONObject(json);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			System.out.println("ERROR in add Car");
+			return new StandardResponse(400);
+		}
+		if (!fieldsRequiredExist(jsonObj)) {
+			System.out.println("Missing fields");
+			return new StandardResponse(400, "Missing fields");
+		}
+		else if(!verifyListing(jsonObj.getString("rego"),owner)) {
+			System.out.println("Invalid car.");
+			return new StandardResponse(400, "Invalid car.");
+		}
+		try {
+			String imgPath = handleUpload(request,owner);
+			jsonObj.put("img", imgPath);
+			jc.addCar(owner, new Car(jsonObj.getString("rego"),jsonObj.getString("brand"),jsonObj.getString("model"),
+					jsonObj.getString("location"),jsonObj.getString("colour"),jsonObj.getString("transmission"),jsonObj.getInt("year"),
+					jsonObj.getInt("capacity"),jsonObj.getInt("odometer"),jsonObj.getString("img"),owner));
+		} catch (IOException | ServletException | JSONException | SQLException e1) {
+			e1.printStackTrace();
+			System.out.println("SUCKS");
+			return new StandardResponse(400, "Cannot create new car");
+		}
+		
+		return new StandardResponse(200,jsonObj,true);
 	}
 	
 	private StandardResponse search (Request request) {
@@ -112,9 +299,7 @@ public class ListingController {
 		return new StandardResponse(200,cl,true);
 	}
 	
-	private StandardResponse createListing (Request request) {
-		//System.out.println(request.body());   
-		String json="";
+	StandardResponse createListing (Request request) {
 		String owner ="";
 		StandardResponse verifyRes = uc.verify(request);
 		if (verifyRes.getStatusCode() != 200) {
@@ -123,45 +308,32 @@ public class ListingController {
 		else {
 			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
-
-		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
-		json = request.raw().getParameter("data");
-		if (request.raw().getParameter("data") == null) {
-			System.out.println("Cannot get data");
-			return new StandardResponse(400, "Insufficient details");
-		}
-		JSONObject jsonObj = null;
-		try {
-			jsonObj = new JSONObject(json);
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-			return new StandardResponse(400);
-		}
-		if (!fieldsRequiredExist(jsonObj)) {
-			return new StandardResponse(400, "Missing fields");
-		}
-		else if(!verifyListing(jsonObj.getString("rego"),owner)) {
-			return new StandardResponse(400, "Invalid car.");
-		}
 		
+		JSONObject jsonObj = new JSONObject(request.body());
 		JDBCConnector.listingCount += 1;
-		long listingNum = JDBCConnector.listingCount;
-		
+		long listingNum = JDBCConnector.listingCount;		              
 		jsonObj.put("listingNumber", listingNum);
+
 		try {
-			String imgPath = handleUpload(request, listingNum);
-			jsonObj.put("img", imgPath);
-		} catch (IOException | ServletException e1) {
-			e1.printStackTrace();
-		}
-		
-		try {
-			CarListing cl = new GsonBuilder().create().fromJson(jsonObj.toString(), CarListing.class);
+			String rego = jsonObj.getString("rego");
+			HashSet <LocalDate> availDates = new HashSet<LocalDate>();
+			JSONArray arr = jsonObj.getJSONArray("availableDates");
+			if (arr != null) {
+				for (Object s: arr) {
+					availDates.add(LocalDate.parse((String)s, DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+				}
+			}
+			else {
+				availDates.add(null);
+			}
+			CarListing cl = new CarListing(listingNum, rego, availDates);
 			jc.addListing(owner,cl);
 			((OwnerSession) uc.getSession(owner)).addCarListingToSession(cl);
 		} catch (JsonSyntaxException | SQLException e) {
-			System.out.println(e.getMessage());		
+			System.out.println(e.getMessage());	
+			return new StandardResponse(400,"Cannot create new listing");
+		} catch(JSONException e) {
+			return new StandardResponse(400,"Missing fields");
 		}
 		return new StandardResponse(200,jsonObj.getLong("listingNumber"),true);
 	}
@@ -214,7 +386,7 @@ public class ListingController {
 		return new StandardResponse(200);
 	}
 	
-	private boolean verifyListing(String rego,String username) {
+	boolean verifyListing(String rego,String username) {
 		try {
 			if (uc.getSession(username) == null) {
 				System.out.println("Cannot get session");
@@ -246,22 +418,24 @@ public class ListingController {
 	}
 	
 	// Upload car listing image and returns image path
-	private String handleUpload(Request request, long listingNum) throws IOException, ServletException {
+	private String handleUpload(Request request,String username) throws IOException, ServletException, SQLException {
 		
 		System.out.println(System.getProperty("user.dir")+File.separator+"listingImg");
 		request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement(System.getProperty("user.dir")+File.separator+"listingImg"));
         Part filePart = request.raw().getPart("listing_img");
         try (InputStream inputStream = filePart.getInputStream()) {
-            OutputStream outputStream = new FileOutputStream(System.getProperty("user.dir")+File.separator+"listingImg" +File.separator+ listingNum +"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1]);
+            OutputStream outputStream = new FileOutputStream(System.getProperty("user.dir")+File.separator+"listingImg" 
+            		+File.separator+ username + "-" +jc.getCarCountByOwner(username) 
+            		+"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1]);
             IOUtils.copy(inputStream, outputStream);
             outputStream.close();
         }
-        System.out.println( "<h1>You uploaded this image:<h1><img src=");
-        return listingNum+"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1];
+        System.out.println( "You uploaded this image:<h1><img src=");
+        return username + "-"+jc.getCarCountByOwner(username)+"."+filePart.getSubmittedFileName().split("\\.")[filePart.getSubmittedFileName().split("\\.").length-1];
 	}
 
 	private boolean valuesInList(JSONObject jsObj) {
-		String [] valueList = new String[] {"model","colour","odometer","location","transmission","capacity"};
+		String [] valueList = new String[] {"model","colour","odometer","location","transmission","capacity","accountNumber","bsb"};
 		int sz = jsObj.keySet().size();
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);

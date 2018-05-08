@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import org.json.JSONObject;
 
@@ -204,8 +205,10 @@ public class JDBCConnector {
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
 			ResultSet rs = statement.executeQuery(findCarOwnerSQL);
+			
 			if (rs.next()) {
 				exists = true;
+				System.out.println(findCarOwnerSQL);
 			}
 
 		} catch (SQLException e) {
@@ -331,6 +334,8 @@ public class JDBCConnector {
 		}
 	}
 	
+	
+	
 	// Get user details
 	public User getUser(String username) throws SQLException {
 		Statement statement = null;
@@ -359,11 +364,13 @@ public class JDBCConnector {
 					rs.getString("SOCIALMEDIALINK"));
 			rs.close();
 			if (!findCarOwner(username)) {
+				System.out.println("Is car renter");
 				return cr;
 			}
 			else {
 				String selectOwnerSQL = "SELECT * FROM CAROWNER WHERE USERNAME = \'" +username + "\';";
 				rs = statement.executeQuery(selectOwnerSQL);
+				System.out.println("Is car owner");
 				rs.next();
 				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()),rs.getString("BSB"),rs.getString("ACCOUNTNUMBER"));
 			}
@@ -410,23 +417,6 @@ public class JDBCConnector {
 		return null;
 	}
 	
-	private void connect() {
-		try {
-			Class.forName(DB_DRIVER);
-		} catch (ClassNotFoundException e) {
-			System.out.println(e.getMessage());
-		}
-
-		try {
-
-			dbConnection = DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
-
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-		}
-
-	}
-	
 	// Get the number of listings
 	public long getListingCount() throws SQLException{
 		Statement statement = null;
@@ -456,13 +446,15 @@ public class JDBCConnector {
 	// Get a map of listings
 	public HashMap<Long,CarListing> getCarListings(String carOwner) throws SQLException{
 		Statement statement = null;
-		String getListingsSQL = "SELECT * FROM LISTING WHERE OWNER = \'"+ carOwner +"\';";
+		String getListingsSQL = "SELECT * FROM LISTING L JOIN CAR C ON L.REGO = C.REGO WHERE C.OWNER = \'"+ carOwner +"\';";
 		String getAvailability = "SELECT * FROM BOOKING WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
 		HashMap<Long,CarListing> cls = new HashMap<Long,CarListing>();
+		HashSet<LocalDate> avail = new HashSet<LocalDate>();
 		try {
 			connect();
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
+			
 			ResultSet rs = statement.executeQuery(getListingsSQL);
 			while(rs.next()) {
 				cls.put(rs.getLong("LISTINGNUM"), new CarListing(rs.getLong("LISTINGNUM"),
@@ -475,7 +467,8 @@ public class JDBCConnector {
 						                                         rs.getInt("YEAR"),
 						                                         rs.getInt("CAPACITY"),
 						                                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
-						                                         rs.getString("OWNER")));
+						                                         rs.getString("OWNER"),
+						                                         avail));
 			}
 			rs.close();
 			System.out.println(getAvailability);
@@ -538,11 +531,10 @@ public class JDBCConnector {
 	}
 	
 	// Add a new listing
-	public void addListing(String owner, CarListing cl) throws SQLException {
+	public void addCar(String owner, Car cl) throws SQLException {
 		Statement statement = null;
 
-		String insertListingSQL = "INSERT INTO LISTING VALUES ("
-				+ cl.getListingNumber() +  ", \'"
+		String insertListingSQL = "INSERT INTO CAR VALUES (\'"
 				+ cl.getRego()+ "\', \'"
 				+ cl.getBrand() + "\', \'"
 				+ cl.getModel() + "\', \'"
@@ -561,10 +553,45 @@ public class JDBCConnector {
 			statement = dbConnection.createStatement();
                         // execute the SQL statement
 			statement.execute(insertListingSQL);
-			System.out.println("New listing created");
+			System.out.println("New car created");
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public void addListing(String owner, CarListing cl) throws SQLException {
+		Statement statement = null;
+
+		String insertListingSQL = "INSERT INTO LISTING VALUES ("
+				+ cl.getListingNumber() +  ", \'"
+				+ cl.getRego()+ "\', \'"
+				+ owner + "\');";
+		
+		String insertListingSQL2 = "INSERT INTO AVAILABILITY VALUES ("
+				+ cl.getListingNumber() +  ",";
+
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+                        // execute the SQL statement
+			statement.execute(insertListingSQL);
+			System.out.println("New listing created");
+			for (LocalDate d : cl.getAvailableDates()) {
+				System.out.println(insertListingSQL2 + "STR_TO_DATE(\'" + d.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\', \'%d-%m-%Y\'));");
+				statement.execute(insertListingSQL2 + "STR_TO_DATE(\'" + d.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "\', \'%d-%m-%Y\'));");
+			}
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -604,11 +631,48 @@ public class JDBCConnector {
 		return exists;
 	}
 	
+	public Car getCar(String rego) throws SQLException	{
+		Statement statement = null;
+		String getCarSQL = "SELECT * FROM CAR WHERE REGO = \'" + rego +"\';";
+		Car c = null;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(getCarSQL);
+                        // execute the SQL statement
+			ResultSet rs = statement.executeQuery(getCarSQL);
+			if (rs.next()) {
+				c = new Car( rs.getString("REGO"),
+                        rs.getString("BRAND"),
+                        rs.getString("MODEL"),
+                        rs.getString("LOCATION"),
+                        rs.getString("COLOUR"),
+                        rs.getString("TRANSMISSION"),
+                        rs.getInt("YEAR"),
+                        rs.getInt("CAPACITY"),
+                        rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
+                        rs.getString("OWNER"));
+			}
+			System.out.println("Get car");
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return c;
+	}
+	
 	// Update car listing
 	public void updateListing(JSONObject jsObj, long listingNum) throws SQLException{
 		Statement statement = null;
 		int sz = jsObj.keySet().size();
-		String updateListingSQL = "UPDATE LISTING SET ";
+		String updateListingSQL = "UPDATE CAR SET ";
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);
 		System.out.println(keys[0]);
@@ -776,15 +840,19 @@ public class JDBCConnector {
 	
 	public CarListing getListing (Long listingNumber) throws SQLException {
 		Statement statement = null;
-		String getListingOwnerSQL = "SELECT * FROM LISTING WHERE LISTINGNUM = " + listingNumber.longValue() + ";";
-		CarListing listing = null;
+		String getListingSQL = "SELECT * FROM CAR C JOIN LISTING L ON C.REGO = L.REGO WHERE LISTINGNUM = " + listingNumber.longValue() + ";";
+		
+		HashSet<LocalDate> avail = this.getAvailableDates(listingNumber);
+		CarListing listing  = null;
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			ResultSet rs= statement.executeQuery(getListingOwnerSQL);
+                        // execute the SQL statement
+	
+			ResultSet rs= statement.executeQuery(getListingSQL);
 			
 			if (rs.next()) {
-				listing = new CarListing(rs.getLong("LISTINGNUM"),
+				listing   = new CarListing(rs.getLong("LISTINGNUM"),
 						 rs.getString("REGO"),
                          rs.getString("BRAND"),
                          rs.getString("MODEL"),
@@ -794,7 +862,8 @@ public class JDBCConnector {
                          rs.getInt("YEAR"),
                          rs.getInt("CAPACITY"),
                          rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
-                         rs.getString("OWNER"));
+                         rs.getString("OWNER"),
+                         avail);
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -809,16 +878,47 @@ public class JDBCConnector {
 		return listing;
 	}
 	
+	public boolean availAllDates (Long listingNum) throws SQLException{
+		Statement statement = null;
+		String availAllDates = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = "+ listingNum +";";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println(availAllDates);
+                        // execute the SQL statementS
+			ResultSet rs = statement.executeQuery(availAllDates);
+			if (rs.next()) {
+				return rs.wasNull();
+			}
+			System.out.println("Listing searched");
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return false;
+	}
+	
 	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException{
 		ArrayList<CarListing> result = new ArrayList<CarListing>();
 		Statement statement = null;
 		String from = criteria.remove("from");
 		String to  = criteria.remove("to");
 		int sz = criteria.size();
-		String searchCarListingSQL = "SELECT L.LISTINGNUM,REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
-									+ " FROM BOOKING B RIGHT OUTER JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM WHERE "+
+		String searchCarListingSQL = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
+									+ " FROM BOOKING B RIGHT OUTER JOIN LISTING L ON B.LISTINGNUM = L.LISTINGNUM JOIN CAR ON L.REGO = CAR.REGO "
+									+ "WHERE "+
 									"( FROMDATE > STR_TO_DATE(\'" + to + "\', '%d-%m-%Y') OR "+
-									"TODATE < STR_TO_DATE(\'" + from + "\', '%d-%m-%Y')) AND ";
+									"TODATE < STR_TO_DATE(\'" + from + "\', '%d-%m-%Y')) AND "+
+									"FROMDATE IN (SELECT AVAILDATE FROM AVAILABILITY) AND ";
+		String searchCarListingSQL2 = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,YEAR, CAPACITY, ODOMETER,OWNER,IMAGEPATH"
+									+ " FROM LISTING L JOIN CAR C ON L.REGO = C.REGO WHERE ";
 		
 		String [] keys = new String[sz];
 		keys = criteria.keySet().toArray(keys);
@@ -846,6 +946,7 @@ public class JDBCConnector {
                         // execute the SQL statementS
 			ResultSet rs = statement.executeQuery(searchCarListingSQL);
 			while (rs.next()) {
+				HashSet<LocalDate> avail = this.getAvailableDates(rs.getLong("LISTINGNUM"));
 				result.add(new CarListing(rs.getLong("LISTINGNUM"),
 						 rs.getString("REGO"),
                          rs.getString("BRAND"),
@@ -856,7 +957,8 @@ public class JDBCConnector {
                          rs.getInt("YEAR"),
                          rs.getInt("CAPACITY"),
                          rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
-                         rs.getString("OWNER")));
+                         rs.getString("OWNER"),
+                         avail));
 			}
 			System.out.println("Listing searched");
 
@@ -890,6 +992,31 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
+	}
+	
+	public HashSet<LocalDate> getAvailableDates(long listingNumber) throws SQLException{
+		Statement statement = null;
+		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ getListingOwner(listingNumber) +"\');";
+		HashSet<LocalDate> avail = new HashSet<LocalDate>();
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getDatesAvail);
+			while(rs.next()) {
+				avail.add(LocalDate.parse(rs.getString("AVAILDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+			}
+			rs.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return avail;
 	}
 	
 	public HashMap<Pair<Long,String>,BookingRequest> getBookingRequestsByOwner(String owner) throws SQLException{
@@ -973,7 +1100,6 @@ public class JDBCConnector {
 		}
 		
 	}
-	
 	
 	public BookingRequest insertTransaction (String requester, Long listingNum) throws SQLException{
 		Statement statement = null;
@@ -1139,6 +1265,27 @@ public class JDBCConnector {
 		return result;
 	}
 	
+	public void upgradeAccount(String username, String accountNumber, String bsb) throws SQLException{
+		Statement statement = null;
+		String upgradeAccountSQL = "INSERT INTO CAROWNER VALUES( \'" + username +"\',\'" + bsb+ "\',\'"+accountNumber+"\');";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(upgradeAccountSQL);
+			System.out.println(upgradeAccountSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		
+	}
+	
 	public void setSeen(long notiNumber) throws SQLException {
 		Statement statement = null;
 		String insertMessageSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE NOTIFNUMBER = ( " + notiNumber +");";
@@ -1159,8 +1306,53 @@ public class JDBCConnector {
 		}
 	}
 	
+	public long getCarCountByOwner(String owner) throws SQLException {
+		Statement statement = null;
+		String getCarCountByOwnerSQL = "SELECT COUNT(*) FROM CAR WHERE OWNER = \'" + owner +"\';";
+		long count = 0;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs =statement.executeQuery(getCarCountByOwnerSQL);
+			if (rs.next()) {
+				count = rs.getLong(1);
+			}
+			System.out.println(getCarCountByOwnerSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return count;
+	}
+	
+	private void connect() {
+		try {
+			Class.forName(DB_DRIVER);
+		} catch (ClassNotFoundException e) {
+			System.out.println(e.getMessage());
+		}
+
+		try {
+
+			dbConnection = DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
+
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		}
+
+	}
 	public Connection getDBConnection() {
 		return dbConnection;
 	}
+
+	
 
 }
