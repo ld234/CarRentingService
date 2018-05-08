@@ -23,13 +23,15 @@ public class ChatController {
 			StandardResponse res = getMessages(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
-			return JsonUtil.toJson(res);
+			return JsonUtil.toJson2(res);
 		});
 		
 		post("/chat",(request, response) -> {
 			StandardResponse res = sendMessage(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
+			if (res.getStatusCode()==200)
+				return JsonUtil.toJson2(res);
 			return JsonUtil.toJson(res);
 		});
 	}
@@ -77,7 +79,7 @@ public class ChatController {
 			message = new Message(username,jsObj.getString("receiver"), jsObj.getString("message"));
 			try {
 				jc.insertMessage(message);
-				jc.insertNotification(new Notification("newMessage",jsObj.getString("receiver"), username + " messaged you."));
+				jc.insertNotification(new Notification("newMessage",username + " messaged you.",jsObj.getString("receiver")));
 			}
 			catch (SQLException e) {
 				e.printStackTrace();

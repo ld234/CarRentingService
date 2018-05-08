@@ -206,7 +206,7 @@ public class BookingController {
 		
 		try {
 			if(!((CarOwner)jc.getUser(jc.getListingOwner(listingNumber))).getCarListingList().get(listingNumber).isAvailable(f, t)) {
-				return new StandardResponse(400,"Listing " + listingNumber + " is booked from "+  from  +" to " + to);
+				return new StandardResponse(400,"Listing " + listingNumber + " is not available from "+  from  +" to " + to);
 			}
 			Notification n = new Notification("newBooking",renter + " has requested to rent car listing " + listingNumber, jc.getListingOwner(listingNumber));
 			jc.insertBookingRequest(br,n);

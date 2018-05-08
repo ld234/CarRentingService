@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.ArrayList;
 
 public class CarListing {
 	private Car car;
@@ -15,6 +16,7 @@ public class CarListing {
 	private double price;
 	private double rating;
 	private long carListingNumber ;
+	private ArrayList<Review> reviewList;
 	
 	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner, HashSet<LocalDate> avail) {
 		carListingNumber = carListingNum;
@@ -22,7 +24,7 @@ public class CarListing {
 		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(brand));
 		available = avail;
-		rating = 0;
+		setRating();
 	}
 	
 	public CarListing(long carListingNum, String rego, String brand, String model, String location, String colour, String transType, int year, int capacity, double odometer,String imgPath, String owner) {
@@ -31,7 +33,7 @@ public class CarListing {
 		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(brand));
 		available = new HashSet<LocalDate>();
-		rating = 0;
+		setRating();
 	}
 	
 	public CarListing(long carListingNum, String rego, HashSet<LocalDate> avail) {
@@ -44,7 +46,7 @@ public class CarListing {
 		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(car.getBrand()));
 		available = avail;
-		rating = 0;
+		setRating();
 	}
 	
 	public CarListing(long carListingNum, String rego) {
@@ -57,7 +59,16 @@ public class CarListing {
 		unavailable = new HashSet<LocalDate>();
 		setPrice(JDBCConnector.priceLookup(car.getBrand()));
 		available = new HashSet<LocalDate>();
-		rating = 0;
+		setRating();
+	}
+	
+	public void setRating() {
+		try {
+			rating = new JDBCConnector().calcRating(carListingNumber);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			rating = 0;
+		}
 	}
 	
 	public String getOwner() {
@@ -196,5 +207,9 @@ public class CarListing {
 	public HashSet<LocalDate> getAvailableDates(){
 		return available;
 		
+	}
+	
+	public Car getCar() {
+		return car;
 	}
 }

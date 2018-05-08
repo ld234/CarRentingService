@@ -4,7 +4,9 @@ public class Notification {
 	private enum NotifType{
 		newBooking,
 		acceptedBooking,
-		rejectedBooking
+		rejectedBooking,
+		newComplaint,
+		newReview
 	};
 	private NotifType notif;
 	private String message;
@@ -36,8 +38,7 @@ public class Notification {
 	
 	public void setNotifType(String notifType)
 	{
-		if (notifType.equals("newBooking"))
-		{
+		if (notifType.equals("newBooking")){
 			this.notif = NotifType.newBooking;
 		}
 		else if(notifType.equals("acceptedBooking")) {
@@ -45,6 +46,12 @@ public class Notification {
 		}
 		else if (notifType.equals("rejectedBooking")) {
 			this.notif = NotifType.rejectedBooking;
+		}
+		else if (notifType.equals("newComplaint")) {
+			this.notif = NotifType.newComplaint;
+		}
+		else if (notifType.equals("newReview")) {
+			this.notif = NotifType.newReview;
 		}
 		else {
 			System.out.println("Error: wrong type of booking.");
@@ -62,6 +69,10 @@ public class Notification {
 			return "newBooking";
 		if (this.notif == NotifType.rejectedBooking)
 			return "rejectedBooking";
+		if (this.notif == NotifType.newComplaint)
+			return "newComplaint";
+		if (this.notif == NotifType.newReview)
+			return "newReview";
 		return null;
 	}
 	

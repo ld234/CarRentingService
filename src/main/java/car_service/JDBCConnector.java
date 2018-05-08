@@ -333,9 +333,7 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
-	}
-	
-	
+	}	
 	
 	// Get user details
 	public User getUser(String username) throws SQLException {
@@ -1382,6 +1380,83 @@ public class JDBCConnector {
 			}
 		}
 		return count;
+	}
+	
+	public ArrayList<Review> getReviewsByListing(Long listingNum) throws SQLException {
+		Statement statement = null;
+		String getReviewsByListingSQL = "SELECT * FROM REVIEW WHERE LISTINGNUM = \'" + listingNum +"\';";
+		ArrayList<Review> result = new ArrayList<Review>();
+		
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs =statement.executeQuery(getReviewsByListingSQL);
+			while (rs.next()) {
+				result.add(new Review(rs.getLong("LISTINGNUM"),rs.getString("REVIEWER"),rs.getInt("RATING"),rs.getString("REVIEWMESSAGE"),rs.getLong("TSTAMP")));
+			}
+			System.out.println(getReviewsByListingSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return result;
+	}
+	
+	public void insertReview(Review r) throws SQLException{
+		Statement statement = null;
+		String insertMessageSQL = "INSERT INTO REVIEW VALUES(" +r.getListingNumber()+ ", \'" 
+									+ r.getReviewer() +"\', \'" 
+									+ r.getReviewMessage() +"\', " 
+									+ r.getRating() +","
+									+ r.getTimestamp().getTime() +");";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(insertMessageSQL);
+			System.out.println(insertMessageSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public double calcRating(Long listingNum) throws SQLException{
+		Statement statement = null;
+		String calcRatingSQL = "SELECT AVG(RATING) FROM REVIEW WHERE LISTINGNUM = "+listingNum+";";
+		double r = 0;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(calcRatingSQL);
+			if(rs.next()) {
+				r= rs.getDouble(1);
+			}
+			System.out.println(calcRatingSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
 	}
 	
 	private void connect() {

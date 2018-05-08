@@ -64,6 +64,22 @@ public class ListingController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Add more avail dates - Not Done
+		put("/avail/:listingNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = editListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res);
+		});
+		
+		// Remove avail dates - Not Done
+		delete("/avail/:listingNum",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = editListing(request);
+			response.status(res.getStatusCode());
+			return JsonUtil.toJson(res);
+		});
+		
 		// Delete listing with listingNum
 		delete("/list/:listingNum", (request,response) -> {
 			response.type("application/json");
@@ -103,11 +119,21 @@ public class ListingController {
 				return JsonUtil.toJson(res);
 		});
 		
+		// Get cars by car owner
+		get("/car",(request,response) -> {
+			response.type("application/json");
+			StandardResponse res = getCarByOwner(request);
+			response.status(res.getStatusCode());
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			else
+				return JsonUtil.toJson(res);
+		});
+		
 		// Search car listing
 		get("/search",(request,response) -> {
 			response.type("application/json");
 			StandardResponse res = search(request);
-			request.queryParams("");
 			response.status(res.getStatusCode());
 			if (res.getStatusCode() == 200)
 				return JsonUtil.toJson(res.getData());
@@ -135,6 +161,29 @@ public class ListingController {
 			}
 			return JsonUtil.toJson(new StandardResponse(200,listingNum));
 		});*/
+	}
+	
+	private StandardResponse getCarByOwner (Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String owner;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		ArrayList<Car> result = new ArrayList<Car>();
+		HashMap<Long, CarListing> carListings = null;
+		try {
+			carListings = jc.getCarListings(owner);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Cannot get listings by owner");
+		}
+		for (Long l : carListings.keySet()) {
+			result.add(carListings.get(l).getCar());
+		}
+		return new StandardResponse(200,result,true);
 	}
 	
 	private StandardResponse getListingsByOwner(Request request) {
@@ -268,7 +317,6 @@ public class ListingController {
 			System.out.println("SUCKS");
 			return new StandardResponse(400, "Cannot create new car");
 		}
-		
 		return new StandardResponse(200,jsonObj,true);
 	}
 	

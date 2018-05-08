@@ -15,6 +15,7 @@ public class Server {
 		UserController uc = new UserController(jc);
 		new ListingController(jc, uc);
 		new BookingController(jc, uc);
+		new ReviewController(jc, uc);
 	}
 	
 	
