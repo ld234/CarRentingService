@@ -58,8 +58,8 @@ public class CarOwner extends CarRenter{
 		return result; 
 	}
 	
-	public BookingRequest addBookingRequest(BookingRequest br) {
-		return bookingRequests.put(new Pair<Long,String>(br.getListingNumber(),br.getRenter()),br);
+	public void addBookingRequest(BookingRequest br) {
+		bookingRequests.put(new Pair<Long,String>(br.getListingNumber(),br.getRenter()),br);
 	}
 	
 	public BookingRequest getBookingRequest(Long l, String requester) {

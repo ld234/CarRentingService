@@ -1,6 +1,6 @@
 package car_service;
 
-public class OwnerSession extends RenterSession{
+public class OwnerSession extends UserSession{
 	
 	public OwnerSession(String username) {
 		super(username);

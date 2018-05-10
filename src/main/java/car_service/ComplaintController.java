@@ -30,9 +30,21 @@ public class ComplaintController {
 			return JsonUtil.toJson(res);
 		});
 		
+		// Get complaint 
 		get("/complaint/:id", (request,response) ->{
 			StandardResponse res = fileComplaint(request);
 			response.status(res.getStatusCode());
+			response.type("application/json");
+			if(res.getStatusCode() == 200 )
+				return res.getData();
+			return JsonUtil.toJson(res);
+		});
+		
+		// Approve
+		put("/complaint/:id", (request,response) ->{
+			StandardResponse res = fileComplaint(request);
+			response.status(res.getStatusCode());
+			response.type("application/json");
 			if(res.getStatusCode() == 200 )
 				return res.getData();
 			return JsonUtil.toJson(res);
@@ -41,6 +53,7 @@ public class ComplaintController {
 		delete("/complaint/:id", (request,response) ->{
 			StandardResponse res = fileComplaint(request);
 			response.status(res.getStatusCode());
+			response.type("application/json");
 			if(res.getStatusCode() == 200 )
 				return res.getData();
 			return JsonUtil.toJson(res);
@@ -48,6 +61,10 @@ public class ComplaintController {
 	}
 	
 	public StandardResponse fileComplaint(Request request) {
+		return null;
+	}
+	
+	public StandardResponse getComplaints(Request request) {
 		return null;
 	}
 }

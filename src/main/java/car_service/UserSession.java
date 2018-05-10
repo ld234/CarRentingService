@@ -2,8 +2,6 @@ package car_service;
 
 import java.sql.SQLException;
 
-//import java.util.HashMap;
-
 public class UserSession {
 	protected User user;
 	//private ArrayList<Message> messages;

@@ -514,7 +514,7 @@ public class JDBCConnector {
 							+ fn + "\' AND "
 							+ "LASTNAME = \'"
 							+ ln +  "\';";
-		String findRegoExist = "SELECT REGO FROM LISTING " 
+		String findRegoExist = "SELECT REGO FROM CAR " 
 				+ "WHERE REGO = \'"
 				+ rego +  "\';";
 		boolean exists = false;
@@ -696,7 +696,7 @@ public class JDBCConnector {
 				updateListingSQL+= ", ";
 			}
 		}
-		updateListingSQL += " WHERE LISTINGNUM = "+ listingNum + ";";
+		updateListingSQL += " WHERE REGO = ( SELECT REGO FROM LISTING WHERE LISTING ="+  listingNum + ");";
 
 		try {
 			connect();
@@ -720,6 +720,16 @@ public class JDBCConnector {
 	
 	public void deleteListing(long listingNum) throws SQLException{
 		Statement statement = null;
+		String deleteListingSQL1 = "DELETE FROM AVAILABILITY "
+				+ " WHERE LISTINGNUM = "+ listingNum + ";";
+		String deleteListingSQL2 = "DELETE FROM BOOKINGREQUEST "
+				+ " WHERE LISTINGNUM = "+ listingNum + ";";
+		String deleteListingSQL3 = "DELETE FROM BOOKING "
+				+ " WHERE LISTINGNUM = "+ listingNum + ";";
+		String deleteListingSQL4 = "DELETE FROM COMPLAINT "
+				+ " WHERE LISTINGNUM = "+ listingNum + ";";
+		String deleteListingSQL5 = "DELETE FROM REVIEW "
+				+ " WHERE LISTINGNUM = "+ listingNum + ";";
 		String deleteListingSQL = "DELETE FROM LISTING "
 		+ " WHERE LISTINGNUM = "+ listingNum + ";";
 
@@ -728,6 +738,11 @@ public class JDBCConnector {
 			statement = dbConnection.createStatement();
 			System.out.println(deleteListingSQL);
                         // execute the SQL statement
+			statement.execute(deleteListingSQL5);
+			statement.execute(deleteListingSQL4);
+			statement.execute(deleteListingSQL3);
+			statement.execute(deleteListingSQL2);
+			statement.execute(deleteListingSQL1);
 			statement.execute(deleteListingSQL);
 			System.out.println("Listing DELETED");
 		} catch (SQLException e) {
@@ -1432,6 +1447,44 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
+	}
+	
+	public ArrayList<Car> getCarByOwner(String owner) throws SQLException {
+		Statement statement = null;
+		String getCarByOwnerSQL = "SELECT * FROM CAR WHERE OWNER = \'" + owner +"\';";
+		long count = 0;
+		ArrayList<Car> carList = new ArrayList<Car>();
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs =statement.executeQuery(getCarByOwnerSQL);
+			while (rs.next()) {
+				carList.add(new Car(rs.getString("REGO"),
+						    rs.getString("BRAND"),
+						    rs.getString("MODEL"),
+						    rs.getString("LOCATION"),
+						    rs.getString("COLOUR"),
+						    rs.getString("TRANSMISSION"),
+						    rs.getInt("YEAR"),
+						    rs.getInt("CAPACITY"),
+						    rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
+						    rs.getString("OWNER")
+						    ));
+			}
+			System.out.println(getCarByOwnerSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return carList;
 	}
 	
 	public double calcRating(Long listingNum) throws SQLException{

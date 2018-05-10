@@ -173,15 +173,11 @@ public class ListingController {
 			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		ArrayList<Car> result = new ArrayList<Car>();
-		HashMap<Long, CarListing> carListings = null;
 		try {
-			carListings = jc.getCarListings(owner);
+			result = jc.getCarByOwner(owner);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(400,"Cannot get listings by owner");
-		}
-		for (Long l : carListings.keySet()) {
-			result.add(carListings.get(l).getCar());
 		}
 		return new StandardResponse(200,result,true);
 	}
@@ -435,7 +431,7 @@ public class ListingController {
 		return new StandardResponse(200);
 	}
 	
-	boolean verifyListing(String rego,String username) {
+	private boolean verifyListing(String rego,String username) {
 		try {
 			if (uc.getSession(username) == null) {
 				System.out.println("Cannot get session");

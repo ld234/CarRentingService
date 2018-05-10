@@ -3,9 +3,6 @@ package car_service;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class BookingRequest {
 	private LocalDate from;
@@ -58,21 +55,4 @@ public class BookingRequest {
 	public long getListingNumber() {
 		return listingNum;
 	}
-	
-	public static List<LocalDate> getDatesBetween(LocalDate startDate, LocalDate endDate) { 
-		long numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate); 
-		return IntStream.iterate(0, i -> i + 1)
-			      .limit(numOfDaysBetween)
-			      .mapToObj(i -> startDate.plusDays(i))
-			      .collect(Collectors.toList()); 
-	}
-	/*public void approve() {
-		// write to database
-		// add to history
-		// deduct amount
-	}
-	
-	public void reject() {
-		// delete from database
-	}*/
 }

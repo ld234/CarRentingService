@@ -370,7 +370,7 @@ public class UserController {
 			if (jc.findCarOwner(username))
 				return new OwnerSession(username);
 			else if(jc.usernameExists(username))
-				return new RenterSession(username);
+				return new UserSession(username);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}

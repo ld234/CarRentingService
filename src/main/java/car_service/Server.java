@@ -1,5 +1,6 @@
 package car_service;
 import static spark.Spark.*;
+import java.lang.reflect.*;
 
 import java.io.File;
 import java.util.concurrent.*;
@@ -7,6 +8,7 @@ import java.util.concurrent.*;
 public class Server {
 
 	public static void main(String[] argv) throws InterruptedException, ExecutionException {
+		getAllMethods();
 		port(8080);
 		File theDir = new File("listingImg");
 		theDir.mkdir();
@@ -18,6 +20,13 @@ public class Server {
 		new ReviewController(jc, uc);
 	}
 	
-	
+	public static void getAllMethods() {
+		Method [] methods = JDBCConnector.class.getDeclaredMethods();
+		for (Method m : methods) {
+			System.out.println(m);
+		}
+	}
 }
+
+
  
