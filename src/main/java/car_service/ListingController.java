@@ -327,6 +327,8 @@ public class ListingController {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(500);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			return new StandardResponse(400, "Insufficient search criteria.");
 		}
 		return new StandardResponse(200,data,true);
 		

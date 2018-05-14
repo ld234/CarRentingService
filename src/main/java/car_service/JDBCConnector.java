@@ -419,7 +419,7 @@ public class JDBCConnector {
 	// Get the number of listings
 	public long getListingCount() throws SQLException{
 		Statement statement = null;
-		String getListingCountSQL = "SELECT COUNT(*) FROM LISTING;";
+		String getListingCountSQL = "SELECT MAX(LISTINGNUM) FROM LISTING;";
 		long count = 0;
 		try {
 			connect();
@@ -931,7 +931,7 @@ public class JDBCConnector {
 		return false;
 	}
 	
-	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException{
+	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException, ArrayIndexOutOfBoundsException{
 		ArrayList<CarListing> result = new ArrayList<CarListing>();
 		Statement statement = null;
 		String from = criteria.remove("from");
@@ -1439,6 +1439,7 @@ public class JDBCConnector {
 			System.out.println(insertMessageSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1452,7 +1453,6 @@ public class JDBCConnector {
 	public ArrayList<Car> getCarByOwner(String owner) throws SQLException {
 		Statement statement = null;
 		String getCarByOwnerSQL = "SELECT * FROM CAR WHERE OWNER = \'" + owner +"\';";
-		long count = 0;
 		ArrayList<Car> carList = new ArrayList<Car>();
 		try {
 			connect();
@@ -1510,6 +1510,255 @@ public class JDBCConnector {
 			}
 		}
 		return r;
+	}
+	
+	public void addComplaint(Complaint c) throws SQLException{
+		Statement statement = null;
+		String addComplaintSQL = "INSERT INTO COMPLAINT VALUES( "
+				+ c.getCID() +", \'" 
+				+ c.getComplainant() +"\'," 
+				+ c.getListingNumber() + ", \'"
+				+ c.getDescription() +"\');";
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(addComplaintSQL);
+			System.out.println(addComplaintSQL);
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public long getComplaintID() throws SQLException{
+		Statement statement = null;
+		String getComplaintIDSQL = "SELECT MAX(CID) FROM COMPLAINT;";
+		long r = 0;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getComplaintIDSQL);
+			if(rs.next()) {
+				r= rs.getLong(1);
+			}
+			System.out.println(getComplaintIDSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r+1;
+	}
+	
+	public ArrayList<String> getAdmins() throws SQLException{
+		Statement statement = null;
+		String getAdminsSQL = "SELECT USERNAME FROM USER WHERE TYPE = 'CADMIN' OR TYPE = 'FADMIN';";
+		ArrayList <String> r = new ArrayList<String>();
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getAdminsSQL);
+			while(rs.next()) {
+				r.add(rs.getString("USERNAME"));
+			}
+			System.out.println(getAdminsSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
+	}
+	
+	public boolean isCAdmin(String u) throws SQLException{
+		Statement statement = null;
+		String isCAdminSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'"+ u + "\' AND TYPE = 'CADMIN';";
+		boolean r =false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(isCAdminSQL);
+			if(rs.next()) {
+				r = true;
+			}
+			System.out.println(isCAdminSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
+	}	
+			
+	public boolean isFAdmin(String u) throws SQLException{
+		Statement statement = null;
+		String isFAdminSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'"+ u + "\' AND TYPE = 'FADMIN';";
+		boolean r = false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(isFAdminSQL);
+			while(rs.next()) {
+				r = true;
+			}
+			System.out.println(isFAdminSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
+	}		
+
+	public ArrayList<Complaint> getApprovedComplaints() throws SQLException{
+		Statement statement = null;
+		String isFAdminSQL = "SELECT * FROM COMPLAINT WHERE APPROVED = TRUE;";
+		ArrayList<Complaint> r = new ArrayList<Complaint>();
+		//cid, String c, long lNum, String desc
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(isFAdminSQL);
+			while(rs.next()) {
+				Complaint c = new Complaint(rs.getLong("CID"),rs.getString("COMPLAINANT"),rs.getLong("LISTINGNUM"),rs.getString("DESCRIPTION"));
+				c.approve();
+				r.add(c);
+			}
+			System.out.println(isFAdminSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
+	}
+	
+	public ArrayList<Complaint> getUnapprovedComplaints() throws SQLException{
+		Statement statement = null;
+		String isFAdminSQL = "SELECT * FROM COMPLAINT WHERE APPROVED = FALSE;";
+		ArrayList<Complaint> r = new ArrayList<Complaint>();
+		//cid, String c, long lNum, String desc
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(isFAdminSQL);
+			while(rs.next()) {
+				Complaint c = new Complaint(rs.getLong("CID"),rs.getString("COMPLAINANT"),rs.getLong("LISTINGNUM"),rs.getString("DESCRIPTION"));
+				r.add(c);
+			}
+			System.out.println(isFAdminSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return r;
+	}
+	
+	public void approveComplaint(Long id) throws SQLException{
+		Statement statement = null;
+		String approvedComplaintSQL = "UPDATE COMPLAINT SET APPROVED = TRUE WHERE CID = " + id +";";
+		ArrayList<Complaint> r = new ArrayList<Complaint>();
+		//cid, String c, long lNum, String desc
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(approvedComplaintSQL);
+			System.out.println(approvedComplaintSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public void rejectComplaint(Long id) throws SQLException{
+		Statement statement = null;
+		String rejectComplaintSQL = "DELETE FROM COMPLAINT WHERE CID = " + id +";";
+		//cid, String c, long lNum, String desc
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			statement.execute(rejectComplaintSQL);
+			System.out.println(rejectComplaintSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+	}
+	
+	public Complaint getComplaintById(Long id) throws SQLException{
+		Statement statement = null;
+		String rejectComplaintSQL = "SELECT * FROM COMPLAINT WHERE CID = " + id +";";
+		//cid, String c, long lNum, String desc
+		Complaint c = null;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(rejectComplaintSQL);
+			if (rs.next()) {
+				c = new Complaint(rs.getLong("CID"),rs.getString("COMPLAINANT"),rs.getLong("LISTINGNUM"),rs.getString("DESCRIPTION"));
+			}
+			System.out.println(rejectComplaintSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return c;
 	}
 	
 	private void connect() {
