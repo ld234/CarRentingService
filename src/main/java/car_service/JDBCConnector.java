@@ -452,7 +452,7 @@ public class JDBCConnector {
 //		String getListingsByOwner = "(SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
 		HashMap<Long,CarListing> cls = new HashMap<Long,CarListing>();
 		String getAvailByListing= "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = ";
-		HashSet<LocalDate> avail = new HashSet<LocalDate>();
+		
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -477,7 +477,7 @@ public class JDBCConnector {
 			}
 			for (Long l : cls.keySet()) {
 				rs = statement.executeQuery(getAvailByListing  + l +";");
-				avail.clear();
+				HashSet<LocalDate> avail = new HashSet<LocalDate>();
 				while(rs.next()) {
 					avail.add(Instant.ofEpochMilli(rs.getDate("AVAILDATE").getTime())
 							.atZone(ZoneId.systemDefault()).toLocalDate());
@@ -787,7 +787,7 @@ public class JDBCConnector {
 	
 	public int getNotifCount () throws SQLException {
 		Statement statement = null;
-		String getNotifCountSQL = "SELECT COUNT(*) FROM NOTIFICATION;";
+		String getNotifCountSQL = "SELECT MAX(NOTIFNUMBER) FROM NOTIFICATION;";
 		int count = -1;
 		try {
 			connect();
@@ -904,33 +904,6 @@ public class JDBCConnector {
 		return listing;
 	}
 	
-	public boolean availAllDates (Long listingNum) throws SQLException{
-		Statement statement = null;
-		String availAllDates = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = "+ listingNum +";";
-		try {
-			connect();
-			statement = dbConnection.createStatement();
-			System.out.println(availAllDates);
-                        // execute the SQL statementS
-			ResultSet rs = statement.executeQuery(availAllDates);
-			if (rs.next()) {
-				return rs.wasNull();
-			}
-			System.out.println("Listing searched");
-
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-		} finally {
-			if (statement != null) {
-				statement.close();
-			}
-			if (dbConnection != null) {
-				dbConnection.close();
-			}
-		}
-		return false;
-	}
-	
 	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException, ArrayIndexOutOfBoundsException{
 		ArrayList<CarListing> result = new ArrayList<CarListing>();
 		Statement statement = null;
@@ -952,13 +925,15 @@ public class JDBCConnector {
 		System.out.println(keys[0]);
 		for (int i = 0; i < sz; i++) {
 			if (keys[i].toLowerCase().equals("capacity"))
-				searchCarListingSQL += keys[i] + " = " + criteria.get(keys[i]);
-			else if (keys[i].toLowerCase().equals("transmission") || keys[i].toLowerCase().equals("brand") )
+				searchCarListingSQL += keys[i] + " >= " + criteria.get(keys[i]);
+			else if (keys[i].toLowerCase().equals("transmission") || keys[i].toLowerCase().equals("brand") || keys[i].toLowerCase().equals("model"))
 				searchCarListingSQL += keys[i]	+  " = \'" + criteria.get(keys[i]) + "\'";
 			else if (keys[i].toLowerCase().equals("location") )
 				searchCarListingSQL += keys[i]	+  " LIKE \'%" + criteria.get(keys[i]) + "%\'";
-//			else if (keys[i].toLowerCase().equals("from") )
-//				searchCarListingSQL += keys[i]	+  " " + criteria.get(keys[i]) + "%\'";
+			else if (keys[i].toLowerCase().equals("year") || keys[i].toLowerCase().equals("odometer") )
+				searchCarListingSQL += keys[i]	+  " = " + criteria.get(keys[i]);
+			else
+				searchCarListingSQL += keys[i]	+  " = \'" + criteria.get(keys[i]) + "\'";
 //			else if (keys[i].toLowerCase().equals("to") )
 			searchCarListingSQL += " AND ";
 		}
@@ -1399,7 +1374,7 @@ public class JDBCConnector {
 	
 	public ArrayList<Review> getReviewsByListing(Long listingNum) throws SQLException {
 		Statement statement = null;
-		String getReviewsByListingSQL = "SELECT * FROM REVIEW WHERE LISTINGNUM = \'" + listingNum +"\';";
+		String getReviewsByListingSQL = "SELECT * FROM REVIEW WHERE LISTINGNUM = " + listingNum +";";
 		ArrayList<Review> result = new ArrayList<Review>();
 		
 		try {
@@ -1695,7 +1670,7 @@ public class JDBCConnector {
 	public void approveComplaint(Long id) throws SQLException{
 		Statement statement = null;
 		String approvedComplaintSQL = "UPDATE COMPLAINT SET APPROVED = TRUE WHERE CID = " + id +";";
-		ArrayList<Complaint> r = new ArrayList<Complaint>();
+
 		//cid, String c, long lNum, String desc
 		try {
 			connect();

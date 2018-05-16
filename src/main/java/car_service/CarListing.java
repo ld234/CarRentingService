@@ -166,6 +166,7 @@ public class CarListing {
 		for (LocalDate d : available) {
 			System.out.println(d.toString());
 		}
+		System.out.println("Awesome");
 	}
 	
 	public String getTransmission() {
