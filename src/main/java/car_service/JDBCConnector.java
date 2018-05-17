@@ -50,6 +50,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -76,6 +77,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -117,6 +119,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -144,6 +147,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -185,6 +189,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -214,6 +219,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -248,6 +254,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -325,6 +332,7 @@ public class JDBCConnector {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -375,8 +383,10 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+			throw new SQLException();
 		} catch(Exception e) {
 			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}finally {
 			if (statement != null) {
 				statement.close();
@@ -431,6 +441,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -493,6 +504,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -530,6 +542,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -568,6 +581,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -631,6 +645,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -668,6 +683,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -708,6 +724,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -747,6 +764,7 @@ public class JDBCConnector {
 			System.out.println("Listing DELETED");
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -799,6 +817,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -824,6 +843,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -854,6 +874,7 @@ public class JDBCConnector {
 			System.out.println("Notification MADE");
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -893,6 +914,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -973,6 +995,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1002,6 +1025,7 @@ public class JDBCConnector {
 			System.out.println(deleteAvailSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1021,6 +1045,7 @@ public class JDBCConnector {
 			statement.execute(getListingOwnerSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1047,6 +1072,7 @@ public class JDBCConnector {
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1076,6 +1102,7 @@ public class JDBCConnector {
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1103,6 +1130,7 @@ public class JDBCConnector {
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1190,6 +1218,7 @@ public class JDBCConnector {
 			System.out.println(increaseAccBalanceSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1215,6 +1244,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1241,6 +1271,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1265,6 +1296,7 @@ public class JDBCConnector {
 			System.out.println(insertMessageSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1293,6 +1325,7 @@ public class JDBCConnector {
 			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1314,6 +1347,7 @@ public class JDBCConnector {
 			System.out.println(upgradeAccountSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1335,6 +1369,7 @@ public class JDBCConnector {
 			System.out.println(insertMessageSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1476,6 +1511,7 @@ public class JDBCConnector {
 			System.out.println(calcRatingSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
@@ -1749,6 +1785,7 @@ public class JDBCConnector {
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
 
 	}
