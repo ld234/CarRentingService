@@ -16,7 +16,7 @@ import org.json.JSONObject;
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -43,7 +43,7 @@ public class JDBCConnector {
 			connect();
 			statement = dbConnection.createStatement();
 			ResultSet rs = statement.executeQuery(loadCarPriceSQL);
-			if (rs.next()) {
+			while (rs.next()) {
 				carPrices.put(rs.getString("BRAND"), rs.getDouble("RATE"));
 			}
 			rs.close();
@@ -74,6 +74,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				exists = true;
 			}
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -144,6 +145,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				type = rs.getString("TYPE");
 			}
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -216,6 +218,7 @@ public class JDBCConnector {
 				exists = true;
 				System.out.println(findCarOwnerSQL);
 			}
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -251,6 +254,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				exists = true;
 			}
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -346,6 +350,7 @@ public class JDBCConnector {
 	// Get user details
 	public User getUser(String username) throws SQLException {
 		Statement statement = null;
+		Statement statement2 = null;
 		String findUserSQL = "SELECT * FROM USER U JOIN CARRENTER C ON U.USERNAME = C.USERNAME WHERE U.USERNAME = \'"
 							+ username + "\';";
 		String findNotifSQL = "SELECT * FROM NOTIFICATION WHERE RECEIVER = \'" + username +"\';";
@@ -360,7 +365,8 @@ public class JDBCConnector {
 				notifList.add(new Notification(rs2.getString("NOTIFTYPE"),rs2.getString("MESSAGE"),rs2.getString("RECEIVER")));
 			}
 			rs2.close();
-			ResultSet rs = statement.executeQuery(findUserSQL);
+			statement2 = dbConnection.createStatement();
+			ResultSet rs = statement2.executeQuery(findUserSQL);
 			rs.next();
 			
 			CreditCard cc = getCreditCard(rs.getString("CARDNUMBER"));
@@ -369,7 +375,7 @@ public class JDBCConnector {
 					rs.getString("LASTNAME"),rs.getString("LICENSENUM"), 
 					new SimpleDateFormat(User.DATE_FORMAT).format(new SimpleDateFormat("yyyy-MM-dd").parse(rs.getString("DOB"))),cc,notifList,
 					rs.getString("SOCIALMEDIALINK"));
-			rs.close();
+			
 			if (!findCarOwner(username)) {
 				System.out.println("Is car renter");
 				return cr;
@@ -438,6 +444,7 @@ public class JDBCConnector {
 			ResultSet rs = statement.executeQuery(getListingCountSQL);
 			rs.next();
 			count = rs.getLong(1);
+			rs.close();
 
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -456,6 +463,7 @@ public class JDBCConnector {
 	// Get a map of listings
 	public HashMap<Long,CarListing> getCarListings(String carOwner) throws SQLException{
 		Statement statement = null;
+		Statement statement2 = null;
 		String getListingsSQL = "SELECT * FROM LISTING L JOIN CAR C ON L.REGO = C.REGO "
 				+ "WHERE C.OWNER = \'"+ carOwner +"\';";
 //		String getUnvailability = "SELECT * FROM LISTING WHERE LISTINGNUM = (SELECT LISTINGNUM FROM LISTING WHERE OWNER = \'"+ carOwner +"\');";
@@ -486,8 +494,10 @@ public class JDBCConnector {
 						                                         rs.getString("OWNER")
 						                                         ));
 			}
+			rs.close();
+			statement2 = dbConnection.createStatement();
 			for (Long l : cls.keySet()) {
-				rs = statement.executeQuery(getAvailByListing  + l +";");
+				rs = statement2.executeQuery(getAvailByListing  + l +";");
 				HashSet<LocalDate> avail = new HashSet<LocalDate>();
 				while(rs.next()) {
 					avail.add(Instant.ofEpochMilli(rs.getDate("AVAILDATE").getTime())
@@ -679,6 +689,7 @@ public class JDBCConnector {
                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
                         rs.getString("OWNER"));
 			}
+			rs.close();
 			System.out.println("Get car");
 
 		} catch (SQLException e) {
@@ -741,8 +752,8 @@ public class JDBCConnector {
 				+ " WHERE LISTINGNUM = "+ listingNum + ";";
 		String deleteListingSQL2 = "DELETE FROM BOOKINGREQUEST "
 				+ " WHERE LISTINGNUM = "+ listingNum + ";";
-		String deleteListingSQL3 = "DELETE FROM BOOKING "
-				+ " WHERE LISTINGNUM = "+ listingNum + ";";
+//		String deleteListingSQL3 = "DELETE FROM BOOKING "
+//				+ " WHERE LISTINGNUM = "+ listingNum + ";";
 		String deleteListingSQL4 = "DELETE FROM COMPLAINT "
 				+ " WHERE LISTINGNUM = "+ listingNum + ";";
 		String deleteListingSQL5 = "DELETE FROM REVIEW "
@@ -757,7 +768,7 @@ public class JDBCConnector {
                         // execute the SQL statement
 			statement.execute(deleteListingSQL5);
 			statement.execute(deleteListingSQL4);
-			statement.execute(deleteListingSQL3);
+//			statement.execute(deleteListingSQL3);
 			statement.execute(deleteListingSQL2);
 			statement.execute(deleteListingSQL1);
 			statement.execute(deleteListingSQL);
@@ -815,6 +826,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				count = rs.getInt(1);
 			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -841,6 +853,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				owner = rs.getString(1);
 			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -912,6 +925,7 @@ public class JDBCConnector {
                          rs.getString("OWNER"),
                          avail);
 			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -975,24 +989,25 @@ public class JDBCConnector {
 			statement = dbConnection.createStatement();
 			System.out.println(searchCarListingSQL);
                         // execute the SQL statementS
-			ResultSet rs = statement.executeQuery(searchCarListingSQL);
-			while (rs.next()) {
-				HashSet<LocalDate> avail = this.getAvailableDates(rs.getLong("LISTINGNUM"));
-				result.add(new CarListing(rs.getLong("LISTINGNUM"),
-						 rs.getString("REGO"),
-                         rs.getString("BRAND"),
-                         rs.getString("MODEL"),
-                         rs.getString("LOCATION"),
-                         rs.getString("COLOUR"),
-                         rs.getString("TRANSMISSION"),
-                         rs.getInt("YEAR"),
-                         rs.getInt("CAPACITY"),
-                         rs.getDouble("ODOMETER"),rs.getString("IMAGEPATH"),
-                         rs.getString("OWNER"),
+			ResultSet rs2 = statement.executeQuery(searchCarListingSQL);
+			while (rs2.next()) {
+				HashSet<LocalDate> avail = this.getAvailableDates(rs2.getLong("LISTINGNUM"));
+				result.add(new CarListing(rs2.getLong("LISTINGNUM"),
+						 rs2.getString("REGO"),
+                         rs2.getString("BRAND"),
+                         rs2.getString("MODEL"),
+                         rs2.getString("LOCATION"),
+                         rs2.getString("COLOUR"),
+                         rs2.getString("TRANSMISSION"),
+                         rs2.getInt("YEAR"),
+                         rs2.getInt("CAPACITY"),
+                         rs2.getDouble("ODOMETER"),rs2.getString("IMAGEPATH"),
+                         rs2.getString("OWNER"),
                          avail));
+				System.out.println(rs2.getString("REGO") + " " + avail.size());
 			}
 			System.out.println("Listing searched");
-
+			rs2.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1004,6 +1019,7 @@ public class JDBCConnector {
 				dbConnection.close();
 			}
 		}
+		System.out.println("Res size: " + result.size());
 		return result;
 	}
 	
@@ -1142,7 +1158,7 @@ public class JDBCConnector {
 		return br;
 	}
 	
-	public BookingRequest addBooking (String requester, Long listingNum) throws SQLException{
+/*	public BookingRequest addBooking (String requester, Long listingNum) throws SQLException{
 		Statement statement = null;
 		
 		try {
@@ -1167,7 +1183,7 @@ public class JDBCConnector {
 		}
 		
 	}
-	
+*/	
 	public BookingRequest insertTransaction (String requester, Long listingNum) throws SQLException{
 		Statement statement = null;
 		
@@ -1242,6 +1258,8 @@ public class JDBCConnector {
 			if (rs.next()) {
 				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
 			}
+			rs.close();
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1269,6 +1287,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
 			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1323,6 +1342,7 @@ public class JDBCConnector {
 						Instant.ofEpochMilli(rs.getDate("TODATE").getTime()).atZone(ZoneId.systemDefault()).toLocalDate(),
 						rs.getLong("LISTINGNUM"),rs.getDouble("AMOUNT")));
 			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1391,6 +1411,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				count = rs.getLong(1);
 			}
+			rs.close();
 			System.out.println(getCarCountByOwnerSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -1419,6 +1440,7 @@ public class JDBCConnector {
 			while (rs.next()) {
 				result.add(new Review(rs.getLong("LISTINGNUM"),rs.getString("REVIEWER"),rs.getInt("RATING"),rs.getString("REVIEWMESSAGE"),rs.getLong("TSTAMP")));
 			}
+			rs.close();
 			System.out.println(getReviewsByListingSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -1481,6 +1503,7 @@ public class JDBCConnector {
 						    rs.getString("OWNER")
 						    ));
 			}
+			rs.close();
 			System.out.println(getCarByOwnerSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -1508,6 +1531,7 @@ public class JDBCConnector {
 			if(rs.next()) {
 				r= rs.getDouble(1);
 			}
+			rs.close();
 			System.out.println(calcRatingSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -1559,6 +1583,7 @@ public class JDBCConnector {
 			if(rs.next()) {
 				r= rs.getLong(1);
 			}
+			rs.close();
 			System.out.println(getComplaintIDSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1584,6 +1609,7 @@ public class JDBCConnector {
 			while(rs.next()) {
 				r.add(rs.getString("USERNAME"));
 			}
+			rs.close();
 			System.out.println(getAdminsSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1609,6 +1635,7 @@ public class JDBCConnector {
 			if(rs.next()) {
 				r = true;
 			}
+			rs.close();
 			System.out.println(isCAdminSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1634,6 +1661,7 @@ public class JDBCConnector {
 			while(rs.next()) {
 				r = true;
 			}
+			rs.close();
 			System.out.println(isFAdminSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1662,6 +1690,7 @@ public class JDBCConnector {
 				c.approve();
 				r.add(c);
 			}
+			rs.close();
 			System.out.println(isFAdminSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1689,6 +1718,7 @@ public class JDBCConnector {
 				Complaint c = new Complaint(rs.getLong("CID"),rs.getString("COMPLAINANT"),rs.getLong("LISTINGNUM"),rs.getString("DESCRIPTION"));
 				r.add(c);
 			}
+			rs.close();
 			System.out.println(isFAdminSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1758,6 +1788,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				c = new Complaint(rs.getLong("CID"),rs.getString("COMPLAINANT"),rs.getLong("LISTINGNUM"),rs.getString("DESCRIPTION"));
 			}
+			rs.close();
 			System.out.println(rejectComplaintSQL);
 		} catch (SQLException e) {
 			throw new SQLException();
@@ -1784,6 +1815,7 @@ public class JDBCConnector {
 			if (rs.next()) {
 				exists = true;
 			}
+			rs.close();
 			System.out.println(verifyBankAccountSQL);
 		} catch (SQLException e) {
 			throw new SQLException();

@@ -332,6 +332,7 @@ public class ListingController {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			return new StandardResponse(400, "Insufficient search criteria.");
 		}
+		System.out.println(data.size());
 		return new StandardResponse(200,data,true);
 		
 	}

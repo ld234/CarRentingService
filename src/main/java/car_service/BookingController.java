@@ -126,7 +126,7 @@ public class BookingController {
 			LocalDate f = jc.getBookingRequest(requester, listingNum).getFrom();
 			LocalDate t = jc.getBookingRequest(requester, listingNum).getTo();
 			// add new booking to database and to session
-			jc.addBooking(requester,listingNum);
+			// jc.addBooking(requester,listingNum);
 			//Notification
 			jc.insertNotification(new Notification("acceptedBooking",owner + " has approved your booking request on car listing " + listingNum,requester));
 			// add transaction history
