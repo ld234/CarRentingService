@@ -360,7 +360,7 @@ public class ListingController {
 		JDBCConnector.listingCount += 1;
 		long listingNum = JDBCConnector.listingCount;		              
 		jsonObj.put("listingNumber", listingNum);
-
+		System.out.println(listingNum);
 		try {
 			String rego = jsonObj.getString("rego");
 			HashSet <LocalDate> availDates = new HashSet<LocalDate>();
@@ -427,9 +427,12 @@ public class ListingController {
 			}
 			jc.deleteListing(listingNum);
 			((OwnerSession) uc.getSession(owner)).deleteCarListingInSession(listingNum);
+			JDBCConnector.listingCount= jc.getListingCount();
 		} catch (SQLException e) {
 			return new StandardResponse(500,"Cannot delete listing");
 		}
+		
+		
 		return new StandardResponse(200);
 	}
 	
