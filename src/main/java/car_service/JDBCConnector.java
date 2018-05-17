@@ -1772,6 +1772,32 @@ public class JDBCConnector {
 		return c;
 	}
 	
+	public boolean verifyBankAccount(String accNum, String bsb) throws SQLException{
+		Statement statement = null;
+		String verifyBankAccountSQL = "SELECT * FROM BANKACCOUNT WHERE ACCOUNTNUMBER = \'" + accNum + "\' AND BSB = \'" + bsb + "\'"+";";
+		//cid, String c, long lNum, String desc
+		boolean exists = false;
+		try {
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(verifyBankAccountSQL);
+			if (rs.next()) {
+				exists = true;
+			}
+			System.out.println(verifyBankAccountSQL);
+		} catch (SQLException e) {
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return exists;
+	}
+	
 	private void connect() {
 		try {
 			Class.forName(DB_DRIVER);

@@ -205,7 +205,6 @@ public class ListingController {
 		return new StandardResponse(200,result,true);
 	}
 	
-	
 	private StandardResponse getCar(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String rego = request.params(":rego");
@@ -242,7 +241,10 @@ public class ListingController {
 		JSONObject jsObj = new JSONObject(req);
 		
 		try {
-			jc.upgradeAccount(renter,jsObj.getString("accountNumber"), jsObj.getString("bsb"));
+			if (jc.verifyBankAccount(jsObj.getString("accountNumber"),jsObj.getString("bsb")))
+				jc.upgradeAccount(renter,jsObj.getString("accountNumber"), jsObj.getString("bsb"));
+			else
+				return new StandardResponse(400,"Invalid billing details");
 			
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -346,7 +348,7 @@ public class ListingController {
 		return new StandardResponse(200,cl,true);
 	}
 	
-	StandardResponse createListing (Request request) {
+	private StandardResponse createListing (Request request) {
 		String owner ="";
 		StandardResponse verifyRes = uc.verify(request);
 		if (verifyRes.getStatusCode() != 200) {
