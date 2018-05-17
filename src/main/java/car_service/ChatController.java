@@ -19,14 +19,14 @@ public class ChatController {
 		this.uc = uc;
 		this.jc = jc;
 		
-		get("/chat", (request,response) -> {
+		get("/chat/:otherUser", (request,response) -> {
 			StandardResponse res = getMessages(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
 			return JsonUtil.toJson2(res);
 		});
 		
-		post("/chat",(request, response) -> {
+		post("/chat/:receiver",(request, response) -> {
 			StandardResponse res = sendMessage(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
@@ -49,9 +49,10 @@ public class ChatController {
 			username = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		HashMap<String, ArrayList<Message> > messageMap = new HashMap<String, ArrayList<Message> >();
+		String otherUser = request.params(":otherUser");
 		try {
-			sent = jc.getMessageSent(username);
-			received = jc.getMessageReceived(username);
+			sent = jc.getMessageSent(username,otherUser);
+			received = jc.getMessageReceived(username,otherUser);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(500);
@@ -72,14 +73,15 @@ public class ChatController {
 		}
 		JSONObject jsObj = new JSONObject(request.body());
 		Message message = null;
+		String receiver = request.params(":receiver");
 		if (!fieldsRequiredExist(jsObj)) {
 			return new StandardResponse(400,"Message did not go through");
 		}
 		else {
-			message = new Message(username,jsObj.getString("receiver"), jsObj.getString("message"));
+			message = new Message(username,receiver, jsObj.getString("message"));
 			try {
 				jc.insertMessage(message);
-				jc.insertNotification(new Notification("newMessage",username + " messaged you.",jsObj.getString("receiver")));
+				jc.insertNotification(new Notification("newMessage",username + " messaged you.",receiver));
 			}
 			catch (SQLException e) {
 				e.printStackTrace();

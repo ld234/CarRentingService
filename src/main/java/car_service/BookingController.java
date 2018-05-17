@@ -58,12 +58,12 @@ public class BookingController {
 			return JsonUtil.toJson(res);
 		});
 		
-		get("/transactions", (request,response) -> {
-			response.type("application/json");
-			StandardResponse res = getTransactions(request);
-			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
-		});
+//		get("/transactions", (request,response) -> {
+//			response.type("application/json");
+//			StandardResponse res = getTransactions(request);
+//			response.status(res.getStatusCode());
+//			return JsonUtil.toJson(res.getData());
+//		});
 		
 		// View booking transactions
 		get("/transactions", (request,response) -> {

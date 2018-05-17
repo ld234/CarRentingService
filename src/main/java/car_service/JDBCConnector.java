@@ -1229,10 +1229,10 @@ public class JDBCConnector {
 		}
 	}
 	
-	public ArrayList<Message> getMessageSent(String username) throws SQLException{
+	public ArrayList<Message> getMessageSent(String username, String otherUser) throws SQLException{
 		Statement statement = null;
 		ArrayList<Message> result = new ArrayList<Message>();
-		String getMessageSentSQL = "SELECT * FROM MESSAGE WHERE SENDER = \'" + username +"\';";
+		String getMessageSentSQL = "SELECT * FROM MESSAGE WHERE SENDER = \'" + username +"\' AND RECEIVER = \'" + otherUser + "\';";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -1256,10 +1256,10 @@ public class JDBCConnector {
 		return result;
 	}
 	
-	public ArrayList<Message> getMessageReceived(String username) throws SQLException{
+	public ArrayList<Message> getMessageReceived(String username, String otherUser) throws SQLException{
 		Statement statement = null;
 		ArrayList<Message> result = new ArrayList<Message>();
-		String getMessageReceivedSQL = "SELECT * FROM MESSAGE WHERE RECEIVER = \'" + username +"\';";
+		String getMessageReceivedSQL = "SELECT * FROM MESSAGE WHERE RECEIVER = \'" + username + " AND SENDER = \'" + otherUser +"\';";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
