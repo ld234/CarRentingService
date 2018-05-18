@@ -60,7 +60,7 @@ public class UserController {
 			return resp;
 		});
 		
-		// Route for update user password
+		// Route for update user password and credit card, billing details
 		put("/account", (request, response) -> {
 			response.type("application/json");
 			StandardResponse res = update(request);
@@ -212,6 +212,7 @@ public class UserController {
 	}
 	
 	private StandardResponse update(Request request) {
+		System.out.println("xxxxxxx");
 		JSONObject jsObj =  new JSONObject(request.body());
 		String subject ="";
 		StandardResponse verifyRes = verify(request);
@@ -273,6 +274,21 @@ public class UserController {
 			}
 			jsObj.remove("creditCard");
 			jsObj.put("cardNumber", cc.getString("cardNumber"));
+		}
+		
+		if (jsObj.has("bsb") || jsObj.has("accountNumber") ) {
+			System.out.println("BSB and acc num");
+			try {
+				if (!(jsObj.has("bsb") && jsObj.has("accountNumber") && jc.verifyBankAccount(jsObj.getString("accountNumber"), jsObj.getString("bsb")))) {
+					return new StandardResponse(400, "Invalid bank account details.");
+				}
+			} catch (JSONException e) {
+				e.printStackTrace();
+				return new StandardResponse(400,"Insufficient bank account details." );
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return new StandardResponse(400, "Cannot verify bank account details.");
+			}
 		}
 		
 		try {

@@ -397,6 +397,9 @@ public class JDBCConnector {
 			if (statement != null) {
 				statement.close();
 			}
+			if (statement2 != null) {
+				statement2.close();
+			}
 			if (dbConnection != null) {
 				dbConnection.close();
 			}
@@ -518,6 +521,9 @@ public class JDBCConnector {
 		} finally {
 			if (statement != null) {
 				statement.close();
+			}
+			if (statement2 != null) {
+				statement2.close();
 			}
 			if (dbConnection != null) {
 				dbConnection.close();
@@ -1076,20 +1082,24 @@ public class JDBCConnector {
 		Statement statement = null;
 		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = " +listingNumber +";";
 		HashSet<LocalDate> avail = new HashSet<LocalDate>();
+		ResultSet rs = null;
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			ResultSet rs = statement.executeQuery(getDatesAvail);
+			rs = statement.executeQuery(getDatesAvail);
 			System.out.println(getDatesAvail);
 			while(rs.next()) {
 				avail.add(LocalDate.parse(rs.getString("AVAILDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 			}
 			
-			rs.close();
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			e.printStackTrace();
 			throw new SQLException();
 		} finally {
+			if (rs != null)
+				rs.close();
 			if (statement != null) {
 				statement.close();
 			}

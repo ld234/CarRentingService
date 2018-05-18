@@ -47,7 +47,7 @@ public class ComplaintController {
 		
 		// Get complaint 
 		get("/complaint/:id", (request,response) ->{
-			StandardResponse res = fileComplaint(request);
+			StandardResponse res = getComplaintById(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
 			if(res.getStatusCode() == 200 )
@@ -72,7 +72,7 @@ public class ComplaintController {
 		});
 	}
 	
-	public StandardResponse fileComplaint(Request request) {
+	private StandardResponse fileComplaint(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String complainant = null;
 		Complaint c = null;
@@ -99,7 +99,7 @@ public class ComplaintController {
 		return new StandardResponse(200,c,true);
 	}
 	
-	public StandardResponse getApprovedComplaints(Request request) {
+	private StandardResponse getApprovedComplaints(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String admin = null;
 		ArrayList<Complaint> c = null;
@@ -121,7 +121,7 @@ public class ComplaintController {
 		return new StandardResponse(200,c,true);
 	}
 	
-	public StandardResponse getUnapprovedComplaints(Request request) {
+	private StandardResponse getUnapprovedComplaints(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String admin = null;
 		ArrayList<Complaint> c = null;
@@ -143,7 +143,7 @@ public class ComplaintController {
 		return new StandardResponse(200,c,true);
 	}
 	
-	public StandardResponse approveComplaint(Request request) {
+	private StandardResponse approveComplaint(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String admin = null;
 		Long cid = Long.parseLong(request.params(":id"));
@@ -164,7 +164,7 @@ public class ComplaintController {
 		return new StandardResponse(200,"Complaint rejected");
 	}
 	
-	public StandardResponse rejectComplaint(Request request) {
+	private StandardResponse rejectComplaint(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String admin = null;
 		Long cid = Long.parseLong(request.params(":id"));
@@ -186,7 +186,7 @@ public class ComplaintController {
 		return new StandardResponse(200,"Complaint rejected");
 	}
 	
-	public StandardResponse getComplaintById(Request request) {
+	private StandardResponse getComplaintById(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String admin = null;
 		Long cid = Long.parseLong(request.params(":id"));
