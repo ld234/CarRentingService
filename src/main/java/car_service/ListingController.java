@@ -390,9 +390,11 @@ public class ListingController {
 	
 	private StandardResponse editListing(Request request) {
 		long listingNum = Long.parseLong(request.params(":listingNum"));
+		System.out.println(request.body());
 		JSONObject jsonObj = new JSONObject(request.body());
 		String owner ="";
 		StandardResponse verifyRes = uc.verify(request);
+		
 		if (verifyRes.getStatusCode() != 200) {
 			return verifyRes;
 		}
@@ -400,15 +402,22 @@ public class ListingController {
 			owner = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
 		if (!valuesInList(jsonObj)) {
+			System.out.println("x1");
 			return new StandardResponse(400,"Cannot update listing");
 		}
 		try {
 			if (!jc.isOwnerListing(owner,listingNum)) {
+				System.out.println("x2");
 				return new StandardResponse(400,"Cannot update listing");
+			}
+			if (jc.booked(jsonObj.getJSONArray("availableDates"), listingNum)) {
+				System.out.println("x3");
+				return new StandardResponse(400,"Cannot update listing due to booking being booked");
 			}
 			jc.updateListing(jsonObj, listingNum);
 			((OwnerSession) uc.getSession(owner)).updateCarListingInSession(jc.getCarListings(owner).get(listingNum));
 		} catch (SQLException e) {
+			System.out.println("x4");
 			return new StandardResponse(500,"Cannot update listing");
 		}
 		return new StandardResponse(200);
@@ -488,7 +497,7 @@ public class ListingController {
 	}
 
 	private boolean valuesInList(JSONObject jsObj) {
-		String [] valueList = new String[] {"model","colour","odometer","location","transmission","capacity","accountNumber","bsb"};
+		String [] valueList = new String[] {"rego","availableDates","model","colour","odometer","location","transmission","capacity","accountNumber","bsb"};
 		int sz = jsObj.keySet().size();
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);

@@ -11,12 +11,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -715,11 +716,20 @@ public class JDBCConnector {
 	// Update car listing
 	public void updateListing(JSONObject jsObj, long listingNum) throws SQLException{
 		Statement statement = null;
-		int sz = jsObj.keySet().size();
+		Statement statement2 = null;
+		Statement statement3 = null;
+		
+		System.out.println("In update jdbc2");
 		String updateListingSQL = "UPDATE CAR SET ";
+		JSONArray x = jsObj.getJSONArray("availableDates");
+		jsObj.remove("availableDates");
+		jsObj.remove("rego");
+		int sz = jsObj.keySet().size();
+		System.out.println(sz);
+		System.out.println(jsObj.toString());
 		String [] keys = new String[sz];
 		keys = jsObj.keySet().toArray(keys);
-		System.out.println(keys[0]);
+		System.out.println("In update jdbc3");
 		for (int i = 0; i < sz; i++) {
 			if (keys[i].equals("odometer") || keys[i].equals("capacity"))
 				updateListingSQL += keys[i] + " = " +jsObj.get(keys[i]);
@@ -729,14 +739,28 @@ public class JDBCConnector {
 				updateListingSQL+= ", ";
 			}
 		}
-		updateListingSQL += " WHERE REGO = ( SELECT REGO FROM LISTING WHERE LISTING ="+  listingNum + ");";
-
+		updateListingSQL += " WHERE REGO = ( SELECT REGO FROM LISTING WHERE LISTINGNUM ="+  listingNum + ");";
+		
+		String updateListingSQL2 = "DELETE FROM  AVAILABILITY WHERE LISTINGNUM = "+listingNum+";";
+		String updateListingSQL3 = "INSERT INTO AVAILABILITY VALUES (" +listingNum +", ";
+		System.out.println("In update jdbc");
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			System.out.println(updateListingSQL);
+			if (sz > 0)
                         // execute the SQL statement
-			statement.execute(updateListingSQL);
+				statement.execute(updateListingSQL);
+			
+			if (x != null) {
+				statement2 = dbConnection.createStatement();
+				statement2.execute(updateListingSQL2);
+				statement3 = dbConnection.createStatement();
+				for (Object d : x) {
+					System.out.println(updateListingSQL3 + "STR_TO_DATE(\'" + d.toString() + "\', \'%d-%m-%Y\'));");
+					statement3.execute(updateListingSQL3 + "STR_TO_DATE(\'" + d.toString() + "\', \'%d-%m-%Y\'));");
+				}
+			}
 			System.out.println("Listing updated");
 
 		} catch (SQLException e) {
@@ -744,6 +768,12 @@ public class JDBCConnector {
 			throw new SQLException();
 		} finally {
 			if (statement != null) {
+				statement.close();
+			}
+			if (statement2 != null) {
+				statement.close();
+			}
+			if (statement3 != null) {
 				statement.close();
 			}
 			if (dbConnection != null) {
@@ -1838,6 +1868,43 @@ public class JDBCConnector {
 			}
 		}
 		return exists;
+	}
+	
+	public boolean booked(JSONArray availDates, Long listingNumber) throws SQLException{
+		Statement statement = null;
+		String from = availDates.getString(0);
+		System.out.println("In booked jdbc");
+		String to = availDates.getString(availDates.length()-1);
+		String bookedSQL = "SELECT * FROM TRANSACTION WHERE LISTINGNUM = " + listingNumber + " AND (TODATE < STR_TO_DATE(\'"
+								+ from + "\',\'%d-%m-%Y\') OR FROMDATE > STR_TO_DATE(\'"+ to + "\', \'%d-%m-%Y\') ) GROUP BY LISTINGNUM "
+										+ "HAVING COUNT(*) = (SELECT COUNT(*) FROM TRANSACTION WHERE LISTINGNUM = "+listingNumber +");";
+		//cid, String c, long lNum, String desc
+		boolean booked = true;
+		try {
+			System.out.println(bookedSQL);
+			connect();
+			statement = dbConnection.createStatement();
+			System.out.println("In booked jdbc 2");
+			ResultSet rs = statement.executeQuery(bookedSQL);
+			System.out.println("In booked jdbc 3");
+			if (rs.next()) {
+				booked = false;
+			}
+			rs.close();
+			System.out.println("In update jdbc");
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return booked;
 	}
 	
 	private void connect() {
