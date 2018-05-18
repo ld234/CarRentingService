@@ -222,7 +222,7 @@ public class BookingController {
 		return new StandardResponse(200);
 	}
 	
-	public StandardResponse getTransactions(Request request) {
+	private StandardResponse getTransactions(Request request) {
 		StandardResponse verifyRes = uc.verify(request);
 		String username = null;
 		

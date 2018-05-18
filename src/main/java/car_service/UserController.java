@@ -381,17 +381,21 @@ public class UserController {
 		return sha256hex;
 	}
 	
-	UserSession createSession(String username) {
+	public UserSession createSession(String username) {
 		try {
-			if (jc.findCarOwner(username))
+			if (jc.findCarOwner(username)) {
+				removeSession(username, SESSION_DURATION);
 				return new OwnerSession(username);
-			else if(jc.usernameExists(username))
+			}
+			else if(jc.usernameExists(username)) {
+				removeSession(username, SESSION_DURATION);
 				return new UserSession(username);
+			}
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
-		removeSession(username, SESSION_DURATION);
-		return new AdminSession(username);
+		return null;
 	}
 	
 	public UserSession getSession(String username) {
