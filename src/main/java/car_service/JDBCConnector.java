@@ -984,7 +984,7 @@ public class JDBCConnector {
 		List<LocalDate> datesBtween = CarListing.getDatesBetween(LocalDate.parse(from,DateTimeFormatter.ofPattern("dd-MM-yyyy")), 
 				LocalDate.parse(to,DateTimeFormatter.ofPattern("dd-MM-yyyy")));
 		int sz = criteria.size();
-
+		System.out.println(sz);
 		String searchCarListingSQL = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,"
 									+ "YEAR, CAPACITY, ODOMETER,L.OWNER,IMAGEPATH "
 									+ "FROM AVAILABILITY A JOIN LISTING L ON A.LISTINGNUM = L.LISTINGNUM "
@@ -994,7 +994,6 @@ public class JDBCConnector {
 		
 		String [] keys = new String[sz];
 		keys = criteria.keySet().toArray(keys);
-		System.out.println(keys[0]);
 		for (int i = 0; i < sz; i++) {
 			if (keys[i].toLowerCase().equals("capacity"))
 				searchCarListingSQL += keys[i] + " >= " + criteria.get(keys[i]);
@@ -1112,6 +1111,8 @@ public class JDBCConnector {
 		Statement statement = null;
 		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = " +listingNumber +";";
 		HashSet<LocalDate> avail = new HashSet<LocalDate>();
+
+		System.out.println(getDatesAvail);
 		ResultSet rs = null;
 		try {
 			connect();
@@ -1873,22 +1874,26 @@ public class JDBCConnector {
 	
 	public boolean booked(JSONArray availDates, Long listingNumber) throws SQLException{
 		Statement statement = null;
+		Statement statement2 = null;
 		String from = availDates.getString(0);
 		System.out.println("In booked jdbc");
 		String to = availDates.getString(availDates.length()-1);
 		String bookedSQL = "SELECT * FROM TRANSACTION WHERE LISTINGNUM = " + listingNumber + " AND (TODATE < STR_TO_DATE(\'"
 								+ from + "\',\'%d-%m-%Y\') OR FROMDATE > STR_TO_DATE(\'"+ to + "\', \'%d-%m-%Y\') ) GROUP BY LISTINGNUM "
 										+ "HAVING COUNT(*) = (SELECT COUNT(*) FROM TRANSACTION WHERE LISTINGNUM = "+listingNumber +");";
+		String ifEmptysQL = "SELECT * FROM TRANSACTION WHERE LISTINGNUM = " + listingNumber + ";";
 		//cid, String c, long lNum, String desc
 		boolean booked = true;
 		try {
 			System.out.println(bookedSQL);
 			connect();
 			statement = dbConnection.createStatement();
+			statement2 = dbConnection.createStatement();
 			System.out.println("In booked jdbc 2");
 			ResultSet rs = statement.executeQuery(bookedSQL);
+			ResultSet rs2 = statement2.executeQuery(ifEmptysQL);
 			System.out.println("In booked jdbc 3");
-			if (rs.next()) {
+			if (rs.next() || !rs2.next()) {
 				booked = false;
 			}
 			rs.close();
@@ -1900,6 +1905,9 @@ public class JDBCConnector {
 		} finally {
 			if (statement != null) {
 				statement.close();
+			}
+			if (statement2 != null) {
+				statement2.close();
 			}
 			if (dbConnection != null) {
 				dbConnection.close();

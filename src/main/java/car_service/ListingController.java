@@ -322,6 +322,7 @@ public class ListingController {
 		HashMap<String,String> criteria = new HashMap<String,String>();
 		for (String key : request.queryParams()) {
 			criteria.put(key, request.queryParams(key));
+			System.out.println(key);
 		}
 		ArrayList<CarListing> data;
 		try {
