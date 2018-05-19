@@ -21,6 +21,7 @@ public class Server {
 		new ListingController(jc, uc);
 		new BookingController(jc, uc);
 		new ReviewController(jc, uc);
+		new ChatController(jc,uc);
 	}
 	
 	public static void getAllMethods() {

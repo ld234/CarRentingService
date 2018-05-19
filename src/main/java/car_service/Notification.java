@@ -6,7 +6,8 @@ public class Notification {
 		acceptedBooking,
 		rejectedBooking,
 		newComplaint,
-		newReview
+		newReview,
+		newMessage
 	};
 	private NotifType notif;
 	private String message;
@@ -53,6 +54,9 @@ public class Notification {
 		else if (notifType.equals("newReview")) {
 			this.notif = NotifType.newReview;
 		}
+		else if (notifType.equals("newMessage")) {
+			this.notif = NotifType.newMessage;
+		}
 		else {
 			System.out.println("Error: wrong type of booking.");
 		}
@@ -73,6 +77,8 @@ public class Notification {
 			return "newComplaint";
 		if (this.notif == NotifType.newReview)
 			return "newReview";
+		if (this.notif == NotifType.newMessage)
+			return "newMessage";
 		return null;
 	}
 	

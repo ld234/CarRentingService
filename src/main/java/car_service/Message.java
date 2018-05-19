@@ -3,7 +3,7 @@ package car_service;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
-public class Message {
+public class Message implements Comparable<Message> {
 	public static final String TIMESTAMP_FORMAT = "dd-MM-yyyy HH.mm.ss";
 	private String sender;
 	private String receiver;
@@ -43,8 +43,14 @@ public class Message {
 	public Timestamp getTimestamp() {
 		return tstamp;
 	}
-	
-	public boolean compareTo(Timestamp ts) {
-		return tstamp.before(ts);
+
+	public int compareTo(Message o) {
+		if (tstamp.before(o.getTimestamp()))
+			return -1;
+		if (tstamp.equals(o.getTimestamp()))
+			return 0;
+		return 1;
 	}
+
+
 }

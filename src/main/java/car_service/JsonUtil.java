@@ -1,5 +1,6 @@
 package car_service;
 
+import java.sql.Timestamp;
 import java.util.*;
 import com.google.gson.*;
 
@@ -10,6 +11,14 @@ public class JsonUtil {
 	
 	public static String toJson2(Object object) {
 		return new GsonBuilder().setDateFormat("dd-MM-yyyy hh:mm:ss.SS").create().toJson(object);
+	}
+	
+	public static String toJson3(Object object) {
+		Gson gson = new GsonBuilder()
+		        .registerTypeAdapter(Timestamp.class, (JsonDeserializer<Timestamp>) (json, typeOfT, context) -> new Timestamp(json.getAsJsonPrimitive().getAsLong()))
+		        .registerTypeAdapter(Timestamp.class, (JsonSerializer<Timestamp>) (date, type, jsonSerializationContext) -> new JsonPrimitive(date.getTime()))
+		        .create();
+		return gson.toJson(object);
 	}
 
 	public static String toJson(Object object, ExclusionStrategy MyExclusionStrategy) {

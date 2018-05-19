@@ -23,7 +23,8 @@ public class ChatController {
 			StandardResponse res = getMessages(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
-			return JsonUtil.toJson2(res);
+			
+			return JsonUtil.toJson3(res.getData());
 		});
 		
 		post("/chat/:receiver",(request, response) -> {
@@ -31,7 +32,7 @@ public class ChatController {
 			response.status(res.getStatusCode());
 			response.type("application/json");
 			if (res.getStatusCode()==200)
-				return JsonUtil.toJson2(res);
+				return JsonUtil.toJson3(res);
 			return JsonUtil.toJson(res);
 		});
 	}
@@ -93,7 +94,7 @@ public class ChatController {
 	
 	private boolean fieldsRequiredExist(JSONObject jsonObj) {
 		try {
-			if (jsonObj.getString("receiver").equals("") || jsonObj.getString("message").equals("")) {
+			if (jsonObj.getString("message").equals("")) {
 				return false;
 			}
 		}

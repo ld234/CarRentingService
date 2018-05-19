@@ -6,15 +6,11 @@ public class Car {
 	private String model;
 	private String location;
 	private String colour;
-	public static enum transmission{
-		auto,
-		manual
-	};
+	
 	private transmission transType;
 	private int year;
 	private int capacity;
 	private double odometer;
-//	private double price;
 	private String img;
 	private String owner;
 	
@@ -94,4 +90,9 @@ public class Car {
 		}
 	}
 }
+
+enum transmission{
+	auto,
+	manual
+};
 

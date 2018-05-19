@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1295,7 +1296,7 @@ public class JDBCConnector {
 			ResultSet rs = statement.executeQuery(getMessageSentSQL);
 			System.out.println(getMessageSentSQL);
 			
-			if (rs.next()) {
+			while (rs.next()) {
 				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
 			}
 			rs.close();
@@ -1317,16 +1318,17 @@ public class JDBCConnector {
 	public ArrayList<Message> getMessageReceived(String username, String otherUser) throws SQLException{
 		Statement statement = null;
 		ArrayList<Message> result = new ArrayList<Message>();
-		String getMessageReceivedSQL = "SELECT * FROM MESSAGE WHERE RECEIVER = \'" + username + " AND SENDER = \'" + otherUser +"\';";
+		String getMessageReceivedSQL = "SELECT * FROM MESSAGE WHERE RECEIVER = \'" + username + "\' AND SENDER = \'" + otherUser +"\';";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
 			ResultSet rs = statement.executeQuery(getMessageReceivedSQL);
 			System.out.println(getMessageReceivedSQL);
 			
-			if (rs.next()) {
+			while (rs.next()) {
 				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
 			}
+			Collections.sort(result);
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());

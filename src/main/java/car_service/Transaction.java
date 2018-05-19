@@ -27,4 +27,28 @@ public class Transaction {
 		this.listingNum = listingNum;
 		this.amount = amount;
 	}
+	
+	public String getSender() {
+		return sender;
+	}
+	
+	public String getReceiver() {
+		return receiver;
+	}
+	
+	public LocalDate getFrom() {
+		return from;
+	}
+	
+	public LocalDate getTo() {
+		return to;
+	}
+	
+	public Long getListingNumber() {
+		return listingNum;
+	}
+	
+	public double getAmount() {
+		return amount;
+	}
 }
