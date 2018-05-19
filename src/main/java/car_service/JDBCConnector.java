@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1934,11 +1933,16 @@ public class JDBCConnector {
 	public String escapeMetaCharacters(String inputString){
 	    final String[] metaCharacters = {"\\","'"};
 	    String outputString="";
+	    boolean containsMeta = false;
 	    for (int i = 0 ; i < metaCharacters.length ; i++){
 	        if(inputString.contains(metaCharacters[i])){
 	            outputString = inputString.replace(metaCharacters[i],"\\"+metaCharacters[i]);
 	            inputString = outputString;
+	            containsMeta = true;
 	        }
+	    }
+	    if (!containsMeta) {
+	    	outputString = inputString;
 	    }
 	    return outputString;
 	}
