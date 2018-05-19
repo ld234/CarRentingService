@@ -1328,7 +1328,6 @@ public class JDBCConnector {
 			while (rs.next()) {
 				result.add(new Message(rs.getString("SENDER"),rs.getString("RECEIVER"),rs.getString("MESSAGE"),rs.getLong("TSTAMP")));
 			}
-			Collections.sort(result);
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -1348,13 +1347,13 @@ public class JDBCConnector {
 		Statement statement = null;
 		String insertMessageSQL = "INSERT INTO MESSAGE VALUES( \'" + m.getSender() + "\', \'" 
 									+ m.getReceiver() +"\', \'" 
-									+ m.getMessage() +"\', " 
+									+ escapeMetaCharacters(m.getMessage()) +"\', " 
 									+ m.getTimestamp().getTime() +");";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			statement.execute(insertMessageSQL);
 			System.out.println(insertMessageSQL);
+			statement.execute(insertMessageSQL);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1503,14 +1502,15 @@ public class JDBCConnector {
 		Statement statement = null;
 		String insertMessageSQL = "INSERT INTO REVIEW VALUES(" +r.getListingNumber()+ ", \'" 
 									+ r.getReviewer() +"\', \'" 
-									+ r.getReviewMessage() +"\', " 
+									+ escapeMetaCharacters(r.getReviewMessage()) +"\', " 
 									+ r.getRating() +","
 									+ r.getTimestamp().getTime() +");";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			statement.execute(insertMessageSQL);
 			System.out.println(insertMessageSQL);
+			statement.execute(insertMessageSQL);
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
@@ -1929,7 +1929,17 @@ public class JDBCConnector {
 	public Connection getDBConnection() {
 		return dbConnection;
 	}
-
 	
-
+	
+	public String escapeMetaCharacters(String inputString){
+	    final String[] metaCharacters = {"\\","'"};
+	    String outputString="";
+	    for (int i = 0 ; i < metaCharacters.length ; i++){
+	        if(inputString.contains(metaCharacters[i])){
+	            outputString = inputString.replace(metaCharacters[i],"\\"+metaCharacters[i]);
+	            inputString = outputString;
+	        }
+	    }
+	    return outputString;
+	}
 }

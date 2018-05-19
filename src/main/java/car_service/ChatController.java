@@ -4,6 +4,7 @@ import static spark.Spark.*;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import org.json.JSONException;
@@ -49,18 +50,20 @@ public class ChatController {
 		else {
 			username = new JSONObject((String)verifyRes.getData()).getString("subject");
 		}
-		HashMap<String, ArrayList<Message> > messageMap = new HashMap<String, ArrayList<Message> >();
+		//HashMap<String, ArrayList<Message> > messageMap = new HashMap<String, ArrayList<Message> >();
 		String otherUser = request.params(":otherUser");
 		try {
 			sent = jc.getMessageSent(username,otherUser);
 			received = jc.getMessageReceived(username,otherUser);
+			sent.addAll(received);
+			Collections.sort(sent);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(500);
 		}
-		messageMap.put("sentMessages", sent);
-		messageMap.put("receivedMessages",received);
-		return new StandardResponse(200,messageMap,true);
+//		messageMap.put("sentMessages", sent);
+//		messageMap.put("receivedMessages",received);
+		return new StandardResponse(200,sent,true);
 	}
 	
 	private StandardResponse sendMessage(Request request) {
