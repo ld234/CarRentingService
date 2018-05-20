@@ -362,8 +362,8 @@ public class JDBCConnector {
                         // execute the SQL statement
 			ArrayList<Notification> notifList = new ArrayList<Notification>();
 			ResultSet rs2 = statement.executeQuery(findNotifSQL);
-			if (rs2.next()){
-				notifList.add(new Notification(rs2.getString("NOTIFTYPE"),rs2.getString("MESSAGE"),rs2.getString("RECEIVER")));
+			while (rs2.next()){
+				notifList.add(new Notification(rs2.getLong("NOTIFNUMBER"), rs2.getString("NOTIFTYPE"),rs2.getString("MESSAGE"),rs2.getString("RECEIVER"),rs2.getBoolean("SEEN")));
 			}
 			rs2.close();
 			statement2 = dbConnection.createStatement();
@@ -906,27 +906,42 @@ public class JDBCConnector {
 	
 	public void insertNotification(Notification notif) throws SQLException {
 		Statement statement = null;
+		Statement statement2 = null;
 		int notifNum = this.getNotifCount() +1;
+		
+		String findNotifSQL = null;
 		String insertNotiSQL = "INSERT INTO NOTIFICATION VALUES ( " +
 									notifNum+", \'" +
 									notif.getMessage() + "\', \'"+
 									notif.getType()+ "\',\'" +
-									notif.getReceiver()+"\') ;";
-
+									notif.getReceiver()+"\'," +
+									"FALSE );";
+		if (notif.getType().equals("newMessage")) {
+			findNotifSQL = "SELECT * FROM NOTIFICATION WHERE RECEIVER = \'"+ notif.getReceiver() +"\' AND MESSAGE = \'"
+					+ notif.getMessage() +"\' AND SEEN = FALSE;";
+		}
 
 		try {
 			connect();
 			statement = dbConnection.createStatement();
-			System.out.println(insertNotiSQL);
-                        // execute the SQL statement
-			statement.execute(insertNotiSQL);
-			System.out.println("Notification MADE");
+			statement2 = dbConnection.createStatement();
+			System.out.println(findNotifSQL);
+			ResultSet rs = statement2.executeQuery(findNotifSQL);
+			if (!rs.next()) {
+				System.out.println(insertNotiSQL);
+				statement.execute(insertNotiSQL);
+				System.out.println("Notification MADE");
+			}
+			rs.close();
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
 		} finally {
 			if (statement != null) {
 				statement.close();
+			}
+			if (statement2 != null) {
+				statement2.close();
 			}
 			if (dbConnection != null) {
 				dbConnection.close();
@@ -1423,7 +1438,7 @@ public class JDBCConnector {
 	
 	public void setSeen(long notiNumber) throws SQLException {
 		Statement statement = null;
-		String insertMessageSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE NOTIFNUMBER = ( " + notiNumber +");";
+		String insertMessageSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE NOTIFNUMBER = " + notiNumber +";";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -1923,7 +1938,7 @@ public class JDBCConnector {
 		String getConnectedUsersSQL = "SELECT SENDER FROM MESSAGE WHERE RECEIVER = \'" + username + "\' UNION " 
 				+ "SELECT RECEIVER FROM MESSAGE WHERE SENDER = \'" + username +"\';";
 		//cid, String c, long lNum, String desc
-		boolean booked = true;
+
 		try {
 			System.out.println(getConnectedUsersSQL);
 			connect();

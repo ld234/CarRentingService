@@ -4,6 +4,9 @@ import org.json.JSONObject;
 import static spark.Spark.*;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -29,7 +32,7 @@ public class NotificationController {
 			StandardResponse res = seenNotification(request);
 			response.type("application/json");
 			response.status(res.getStatusCode());
-			return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
 		});
 	}
 	
@@ -66,7 +69,15 @@ public class NotificationController {
 			}
 		}
 		User thisUser = s.getUser();
+		ArrayList<Notification> res = thisUser.getNotifList();
+		Collections.sort(res, new Comparator<Notification>() {
+	        @Override
+	        public int compare(Notification n1, Notification n2) {
+	            return Boolean.compare(n1.getSeen(),n2.getSeen());
+	        }
+	    });
 		obj.add("notifications",new Gson().toJsonTree(thisUser.getNotifList()));
+		
 		return new StandardResponse(200,obj,true);
 	}
 }

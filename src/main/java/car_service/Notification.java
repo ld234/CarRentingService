@@ -9,16 +9,38 @@ public class Notification {
 		newReview,
 		newMessage
 	};
+	private long notifNum;
 	private NotifType notif;
 	private String message;
 	private String receiver;
 	private boolean seen;
 	
-	public Notification(String type, String msg, String receiver) {
+	public Notification(long notifNum, String type, String msg, String receiver) {
+		this.notifNum = notifNum;
 		setNotifType(type);
 		message = msg;
 		this.receiver = receiver;
 		seen = false;
+	}
+	
+	public Notification(String type, String msg, String receiver) {
+		notifNum = -1;
+		setNotifType(type);
+		message = msg;
+		this.receiver = receiver;
+		seen = false;
+	}
+	
+	public Notification(long notifNum,String type, String msg, String receiver, boolean s) {
+		this.notifNum = notifNum;
+		setNotifType(type);
+		message = msg;
+		this.receiver = receiver;
+		seen = s;
+	}
+	
+	public long getNotifNumber() {
+		return notifNum;
 	}
 	
 	public void seen () {
