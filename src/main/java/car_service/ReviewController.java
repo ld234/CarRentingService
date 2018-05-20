@@ -4,6 +4,10 @@ import static spark.Spark.*;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,6 +47,16 @@ public class ReviewController {
 		ArrayList<Review> reviewList = new ArrayList<Review>();
 		try {
 			reviewList = jc.getReviewsByListing(listingNum);
+			Collections.sort(reviewList, new Comparator<Review>() {
+				public int compare(Review r1, Review r2) {
+					if(r2.getTimestamp().getTime() > r1.getTimestamp().getTime())
+						return 1;
+					else if(r2.getTimestamp().equals(r1.getTimestamp())) {
+						return 0;
+					}
+					return -1;
+				}
+			});
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return new StandardResponse(400, "Cannot get reviews for listing " + listingNum);
