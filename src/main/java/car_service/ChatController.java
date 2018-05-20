@@ -61,6 +61,7 @@ public class ChatController {
 		try {
 			sent = jc.getMessageSent(username,otherUser);
 			received = jc.getMessageReceived(username,otherUser);
+			jc.setSeen(-1, username, otherUser);
 			sent.addAll(received);
 			Collections.sort(sent);
 		} catch (SQLException e) {

@@ -39,7 +39,7 @@ public class NotificationController {
 	public StandardResponse seenNotification(Request request) {
 		Long notifNumber = Long.parseLong(request.params(":notifNumber"));
 		try {
-			jc.setSeen(notifNumber);
+			jc.setSeen(notifNumber, null, null);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			new StandardResponse (500, "Failed to set seen");

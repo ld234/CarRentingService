@@ -1436,9 +1436,32 @@ public class JDBCConnector {
 		
 	}
 	
-	public void setSeen(long notiNumber) throws SQLException {
+	public void setSeen(long notiNumber, String username, String otherUser) throws SQLException {
 		Statement statement = null;
+		if (notiNumber == -1) {
+			String setSeenSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE RECEIVER = \'" + username +"\' AND " 
+					+ "NOTIFTYPE = \'newMessage\' AND MESSAGE LIKE \'%" +otherUser+"%\' AND SEEN = FALSE";
+			try {
+				connect();
+				statement = dbConnection.createStatement();
+				System.out.println(setSeenSQL);
+				statement.execute(setSeenSQL);
+			} catch (SQLException e) {
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+				throw new SQLException();
+			} finally {
+				if (statement != null) {
+					statement.close();
+				}
+				if (dbConnection != null) {
+					dbConnection.close();
+				}
+			}
+			return; 
+		}
 		String insertMessageSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE NOTIFNUMBER = " + notiNumber +";";
+		
 		try {
 			connect();
 			statement = dbConnection.createStatement();
