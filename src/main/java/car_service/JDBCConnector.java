@@ -17,7 +17,7 @@ import org.json.JSONObject;
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
@@ -926,13 +926,19 @@ public class JDBCConnector {
 			statement = dbConnection.createStatement();
 			statement2 = dbConnection.createStatement();
 			System.out.println(findNotifSQL);
-			ResultSet rs = statement2.executeQuery(findNotifSQL);
-			if (!rs.next()) {
-				System.out.println(insertNotiSQL);
-				statement.execute(insertNotiSQL);
-				System.out.println("Notification MADE");
+			ResultSet rs = null;
+			if (findNotifSQL != null) {
+				rs= statement2.executeQuery(findNotifSQL);
 			}
-			rs.close();
+			if (rs != null ) {
+				if (!rs.next()) {
+					System.out.println(insertNotiSQL);
+					statement.execute(insertNotiSQL);
+					System.out.println("Notification MADE");
+				}
+				rs.close();
+			}
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
