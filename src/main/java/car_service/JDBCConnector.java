@@ -1239,11 +1239,12 @@ public class JDBCConnector {
 									+ br.getPrice()+");";
 			connect();
 			statement = dbConnection.createStatement();
-			statement.execute(insertTransactionSQL);
 			System.out.println(insertTransactionSQL);
+			statement.execute(insertTransactionSQL);
 			return br;
 		} catch (SQLException | NullPointerException e) {
 			System.out.println(e.getMessage());
+			e.printStackTrace();
 			throw new SQLException();
 		} finally {
 			if (statement != null) {
@@ -1916,6 +1917,36 @@ public class JDBCConnector {
 		return booked;
 	}
 	
+	public ArrayList<String> getConnectedUsers (String username) throws SQLException{
+		Statement statement = null;
+		ArrayList<String> usernames = new ArrayList<String>();
+		String getConnectedUsersSQL = "SELECT SENDER FROM MESSAGE WHERE RECEIVER = \'" + username + "\' UNION " 
+				+ "SELECT RECEIVER FROM MESSAGE WHERE SENDER = \'" + username +"\';";
+		//cid, String c, long lNum, String desc
+		boolean booked = true;
+		try {
+			System.out.println(getConnectedUsersSQL);
+			connect();
+			statement = dbConnection.createStatement();
+			ResultSet rs = statement.executeQuery(getConnectedUsersSQL);
+			while (rs.next()) {
+				usernames.add(rs.getString(1));
+			}
+			rs.close();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new SQLException();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (dbConnection != null) {
+				dbConnection.close();
+			}
+		}
+		return usernames;
+	}
 	private void connect() {
 		try {
 			Class.forName(DB_DRIVER);

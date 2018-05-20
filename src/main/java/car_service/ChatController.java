@@ -19,11 +19,19 @@ public class ChatController {
 		this.uc = uc;
 		this.jc = jc;
 		
+		get("/chat/users", (request,response) -> {
+			StandardResponse res = getConnectedUsers(request);
+			response.status(res.getStatusCode());
+			response.type("application/json");
+			if (res.getStatusCode() == 200)
+				return JsonUtil.toJson(res.getData());
+			return JsonUtil.toJson(res);
+		});
+		
 		get("/chat/:otherUser", (request,response) -> {
 			StandardResponse res = getMessages(request);
 			response.status(res.getStatusCode());
 			response.type("application/json");
-			
 			return JsonUtil.toJson3(res.getData());
 		});
 		
@@ -90,6 +98,27 @@ public class ChatController {
 		}
 		return new StandardResponse(200,message,true);
 	}
+	
+	private StandardResponse getConnectedUsers(Request request) {
+		StandardResponse verifyRes = uc.verify(request);
+		String username = null;
+		ArrayList<String> userList = null;
+		if (verifyRes.getStatusCode() != 200) {
+			return verifyRes;
+		}
+		else {
+			username = new JSONObject((String)verifyRes.getData()).getString("subject");
+		}
+		try {
+			userList = jc.getConnectedUsers(username);
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return new StandardResponse(400,"Cannot fetch username list");
+		}
+		return new StandardResponse(200,userList,true);
+	}
+	
 	
 	private boolean fieldsRequiredExist(JSONObject jsonObj) {
 		try {

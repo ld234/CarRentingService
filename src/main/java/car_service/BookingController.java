@@ -104,6 +104,7 @@ public class BookingController {
 	
 	// When listing is approved
 	private StandardResponse approveBooking(Request request) {
+		System.out.println("Approve booking");
 		StandardResponse verifyRes = uc.verify(request);
 		String owner = null;
 		BookingRequest brResult = null;
