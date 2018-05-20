@@ -17,7 +17,7 @@ import org.json.JSONObject;
 public class JDBCConnector {
 	public static Long listingCount; 
 	private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
-	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/test1?verifyServerCertificate=false&useSSL=true";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/car_service?verifyServerCertificate=false&useSSL=true";
 	private static final String DB_USER = "root";
 	private static final String DB_PASSWORD = "root";
 	private Connection dbConnection = null;
