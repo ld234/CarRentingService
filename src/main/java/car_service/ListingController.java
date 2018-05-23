@@ -241,6 +241,8 @@ public class ListingController {
 		JSONObject jsObj = new JSONObject(req);
 		
 		try {
+			if (!verifyListing(jsObj.getString("rego"),renter))
+				return new StandardResponse(400,"Invalid car.");
 			if (jc.verifyBankAccount(jsObj.getString("accountNumber"),jsObj.getString("bsb")))
 				jc.upgradeAccount(renter,jsObj.getString("accountNumber"), jsObj.getString("bsb"));
 			else

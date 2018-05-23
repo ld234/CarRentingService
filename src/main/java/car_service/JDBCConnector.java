@@ -67,9 +67,10 @@ public class JDBCConnector {
 		Statement statement = null;
 		String findUserSQL = "SELECT USERNAME FROM USER WHERE USERNAME = \'" + username + "\';";
 		boolean exists = false;
+		Connection c = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 		try {
 			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
                         // execute the SQL statement
 			ResultSet rs = statement.executeQuery(findUserSQL);
 			if (rs.next()) {
@@ -84,8 +85,8 @@ public class JDBCConnector {
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		return exists;
@@ -108,10 +109,11 @@ public class JDBCConnector {
 				+ user.getDriverLicense() + "\', \'"
 				+ user.getCardNumber() + "\'," 
 				+ "NULL);";
+		Connection c = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 
 		try {
 			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
                         // execute the SQL statement
 			System.out.println(insertUserSQL2);
 			System.out.println(insertUserSQL);
@@ -126,8 +128,8 @@ public class JDBCConnector {
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 	}
@@ -352,22 +354,25 @@ public class JDBCConnector {
 	public User getUser(String username) throws SQLException {
 		Statement statement = null;
 		Statement statement2 = null;
+		ResultSet rs = null;
+		ResultSet rs2 = null;
+		ResultSet rs3 = null;
+		Connection c = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 		String findUserSQL = "SELECT * FROM USER U JOIN CARRENTER C ON U.USERNAME = C.USERNAME WHERE U.USERNAME = \'"
 							+ username + "\';";
 		String findNotifSQL = "SELECT * FROM NOTIFICATION WHERE RECEIVER = \'" + username +"\';";
 		
 		try {
-			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
                         // execute the SQL statement
 			ArrayList<Notification> notifList = new ArrayList<Notification>();
-			ResultSet rs2 = statement.executeQuery(findNotifSQL);
+			rs2 = statement.executeQuery(findNotifSQL);
 			while (rs2.next()){
 				notifList.add(new Notification(rs2.getLong("NOTIFNUMBER"), rs2.getString("NOTIFTYPE"),rs2.getString("MESSAGE"),rs2.getString("RECEIVER"),rs2.getBoolean("SEEN")));
 			}
-			rs2.close();
-			statement2 = dbConnection.createStatement();
-			ResultSet rs = statement2.executeQuery(findUserSQL);
+			
+			statement2 = c.createStatement();
+			rs = statement2.executeQuery(findUserSQL);
 			rs.next();
 			
 			CreditCard cc = getCreditCard(rs.getString("CARDNUMBER"));
@@ -383,10 +388,10 @@ public class JDBCConnector {
 			}
 			else {
 				String selectOwnerSQL = "SELECT * FROM CAROWNER WHERE USERNAME = \'" +username + "\';";
-				rs = statement.executeQuery(selectOwnerSQL);
+				rs3 = statement.executeQuery(selectOwnerSQL);
 				System.out.println("Is car owner");
-				rs.next();
-				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()),rs.getString("BSB"),rs.getString("ACCOUNTNUMBER"));
+				rs3.next();
+				return new CarOwner(cr,getCarListings(cr.getUsername()),getBookingRequestsByOwner(cr.getUsername()),rs3.getString("BSB"),rs3.getString("ACCOUNTNUMBER"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -395,14 +400,23 @@ public class JDBCConnector {
 			System.out.println(e.getMessage());
 			e.printStackTrace();
 		}finally {
+			if (rs2!= null) {
+				rs2.close();
+			}
+			if (rs!= null) {
+				rs.close();
+			}
+			if (rs3!= null) {
+				rs3.close();
+			}
 			if (statement != null) {
 				statement.close();
 			}
 			if (statement2 != null) {
 				statement2.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		return null;
@@ -451,7 +465,7 @@ public class JDBCConnector {
 			rs.close();
 
 		} catch (SQLException e) {
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 			throw new SQLException();
 		} finally {
 			if (statement != null) {
@@ -958,15 +972,16 @@ public class JDBCConnector {
 	public CarListing getListing (Long listingNumber) throws SQLException {
 		Statement statement = null;
 		String getListingSQL = "SELECT * FROM CAR C JOIN LISTING L ON C.REGO = L.REGO WHERE LISTINGNUM = " + listingNumber.longValue() + ";";
-		
+		ResultSet rs = null;
 		HashSet<LocalDate> avail = this.getAvailableDates(listingNumber);
 		CarListing listing  = null;
+		Connection c =DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
 		try {
 			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
                         // execute the SQL statement
 	
-			ResultSet rs= statement.executeQuery(getListingSQL);
+			rs = statement.executeQuery(getListingSQL);
 			
 			if (rs.next()) {
 				listing   = new CarListing(rs.getLong("LISTINGNUM"),
@@ -982,16 +997,19 @@ public class JDBCConnector {
                          rs.getString("OWNER"),
                          avail);
 			}
-			rs.close();
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
 		} finally {
+			if (rs != null) {
+				rs.close();
+			}
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		return listing;
@@ -1000,13 +1018,16 @@ public class JDBCConnector {
 	public ArrayList<CarListing> searchCarListing(HashMap<String,String> criteria) throws SQLException, ArrayIndexOutOfBoundsException{
 		ArrayList<CarListing> result = new ArrayList<CarListing>();
 		Statement statement = null;
+		ResultSet rs2 = null;
+		List<LocalDate> datesBtween = null;
 		String from = criteria.remove("from");
 		String to  = criteria.remove("to");
-		List<LocalDate> datesBtween = CarListing.getDatesBetween(LocalDate.parse(from,DateTimeFormatter.ofPattern("dd-MM-yyyy")), 
+		if (from != null && to != null)
+			datesBtween = CarListing.getDatesBetween(LocalDate.parse(from,DateTimeFormatter.ofPattern("dd-MM-yyyy")), 
 				LocalDate.parse(to,DateTimeFormatter.ofPattern("dd-MM-yyyy")));
 		int sz = criteria.size();
 		System.out.println(sz);
-		String searchCarListingSQL = "SELECT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,"
+		String searchCarListingSQL = "SELECT DISTINCT L.LISTINGNUM,L.REGO, BRAND, MODEL,LOCATION,COLOUR,TRANSMISSION,"
 									+ "YEAR, CAPACITY, ODOMETER,L.OWNER,IMAGEPATH "
 									+ "FROM AVAILABILITY A JOIN LISTING L ON A.LISTINGNUM = L.LISTINGNUM "
 									+ "JOIN CAR C ON C.REGO = L.REGO "
@@ -1015,6 +1036,7 @@ public class JDBCConnector {
 		
 		String [] keys = new String[sz];
 		keys = criteria.keySet().toArray(keys);
+		Connection c = DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
 		for (int i = 0; i < sz; i++) {
 			if (keys[i].toLowerCase().equals("capacity"))
 				searchCarListingSQL += keys[i] + " >= " + criteria.get(keys[i]);
@@ -1026,26 +1048,29 @@ public class JDBCConnector {
 				searchCarListingSQL += keys[i]	+  " = " + criteria.get(keys[i]);
 			else
 				searchCarListingSQL += keys[i]	+  " = \'" + criteria.get(keys[i]) + "\'";
-//			else if (keys[i].toLowerCase().equals("to") )
+			if (i != sz-1)
+				searchCarListingSQL += " AND ";
+		}
+		if (datesBtween != null) {
 			searchCarListingSQL += " AND ";
+			searchCarListingSQL += "AVAILDATE IN (";
+			for (int i= 0; i <  datesBtween.size(); i++ ) {
+				searchCarListingSQL += "STR_TO_DATE(\'" 
+									+ datesBtween.get(i).format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+									+ "\',\'%d-%m-%Y\')";
+				if(i<datesBtween.size()-1)
+					searchCarListingSQL+=",";
+			}
+			searchCarListingSQL += ")";
+			searchCarListingSQL += " GROUP BY LISTINGNUM HAVING COUNT(*) = " + datesBtween.size();
 		}
-		searchCarListingSQL += "AVAILDATE IN (";
-		for (int i= 0; i <  datesBtween.size(); i++ ) {
-			searchCarListingSQL += "STR_TO_DATE(\'" 
-								+ datesBtween.get(i).format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
-								+ "\',\'%d-%m-%Y\')";
-			if(i<datesBtween.size()-1)
-				searchCarListingSQL+=",";
-		}
-		searchCarListingSQL += ")";
-		searchCarListingSQL += " GROUP BY LISTINGNUM HAVING COUNT(*) = " + datesBtween.size() + ";";
+		searchCarListingSQL+= ";";
 
 		try {
-			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
 			System.out.println(searchCarListingSQL);
                         // execute the SQL statementS
-			ResultSet rs2 = statement.executeQuery(searchCarListingSQL);
+			rs2 = statement.executeQuery(searchCarListingSQL);
 			while (rs2.next()) {
 				HashSet<LocalDate> avail = this.getAvailableDates(rs2.getLong("LISTINGNUM"));
 				result.add(new CarListing(rs2.getLong("LISTINGNUM"),
@@ -1063,16 +1088,19 @@ public class JDBCConnector {
 				System.out.println(rs2.getString("REGO") + " " + avail.size());
 			}
 			System.out.println("Listing searched");
-			rs2.close();
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			throw new SQLException();
 		} finally {
+			if (rs2 != null) {
+				rs2.close();
+			}
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		System.out.println("Res size: " + result.size());
@@ -1089,7 +1117,7 @@ public class JDBCConnector {
 				deleteAvailSQL+=",";
 			}
 		}
-		deleteAvailSQL += ");";
+		deleteAvailSQL += ") AND LISTINGNUM = " + listingNum + ";";
 		try {
 			connect();
 			statement = dbConnection.createStatement();
@@ -1133,13 +1161,15 @@ public class JDBCConnector {
 		String getDatesAvail = "SELECT AVAILDATE FROM AVAILABILITY WHERE LISTINGNUM = " +listingNumber +";";
 		HashSet<LocalDate> avail = new HashSet<LocalDate>();
 
-		System.out.println(getDatesAvail);
+		Connection c = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD);
 		ResultSet rs = null;
 		try {
-			connect();
-			statement = dbConnection.createStatement();
+			statement = c.createStatement();
 			rs = statement.executeQuery(getDatesAvail);
 			System.out.println(getDatesAvail);
+			if (rs == null) {
+				System.out.println("Result set is null for avail");
+			}
 			while(rs.next()) {
 				avail.add(LocalDate.parse(rs.getString("AVAILDATE"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 			}
@@ -1150,13 +1180,14 @@ public class JDBCConnector {
 			e.printStackTrace();
 			throw new SQLException();
 		} finally {
-			if (rs != null)
+			if (rs != null) {
 				rs.close();
+			}
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		return avail;
@@ -1446,7 +1477,7 @@ public class JDBCConnector {
 		Statement statement = null;
 		if (notiNumber == -1) {
 			String setSeenSQL = "UPDATE NOTIFICATION SET SEEN = TRUE WHERE RECEIVER = \'" + username +"\' AND " 
-					+ "NOTIFTYPE = \'newMessage\' AND MESSAGE LIKE \'%" +otherUser+"%\' AND SEEN = FALSE";
+					+ "NOTIFTYPE = \'newMessage\' AND MESSAGE LIKE \'%" +otherUser+"%\' AND SEEN = FALSE;";
 			try {
 				connect();
 				statement = dbConnection.createStatement();
@@ -1518,26 +1549,36 @@ public class JDBCConnector {
 		Statement statement = null;
 		String getReviewsByListingSQL = "SELECT * FROM REVIEW WHERE LISTINGNUM = " + listingNum +";";
 		ArrayList<Review> result = new ArrayList<Review>();
-		
+		ResultSet rs = null;
+		Connection c = DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
 		try {
-			connect();
-			statement = dbConnection.createStatement();
-			ResultSet rs =statement.executeQuery(getReviewsByListingSQL);
+			
+			statement = c.createStatement();
+			System.out.println(getReviewsByListingSQL);
+			rs = statement.executeQuery(getReviewsByListingSQL);
 			while (rs.next()) {
-				result.add(new Review(rs.getLong("LISTINGNUM"),rs.getString("REVIEWER"),rs.getInt("RATING"),rs.getString("REVIEWMESSAGE"),rs.getLong("TSTAMP")));
+				Long ln = rs.getLong("LISTINGNUM");
+				String reviewer= rs.getString("REVIEWER");
+				int rating = rs.getInt("RATING");
+				String msg = rs.getString("REVIEWMESSAGE");
+				Long ts= rs.getLong("TSTAMP");
+				result.add(new Review(ln,reviewer,rating,msg,ts));
 			}
 			rs.close();
-			System.out.println(getReviewsByListingSQL);
+			
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 			e.printStackTrace();
 			throw new SQLException();
 		} finally {
+			if (rs != null) {
+				rs.close();
+			}
 			if (statement != null) {
 				statement.close();
 			}
-			if (dbConnection != null) {
-				dbConnection.close();
+			if (c != null) {
+				c.close();
 			}
 		}
 		return result;
@@ -1921,7 +1962,6 @@ public class JDBCConnector {
 		Statement statement = null;
 		Statement statement2 = null;
 		String from = availDates.getString(0);
-		System.out.println("In booked jdbc");
 		String to = availDates.getString(availDates.length()-1);
 		String bookedSQL = "SELECT * FROM TRANSACTION WHERE LISTINGNUM = " + listingNumber + " AND (TODATE < STR_TO_DATE(\'"
 								+ from + "\',\'%d-%m-%Y\') OR FROMDATE > STR_TO_DATE(\'"+ to + "\', \'%d-%m-%Y\') ) GROUP BY LISTINGNUM "
@@ -1934,15 +1974,12 @@ public class JDBCConnector {
 			connect();
 			statement = dbConnection.createStatement();
 			statement2 = dbConnection.createStatement();
-			System.out.println("In booked jdbc 2");
 			ResultSet rs = statement.executeQuery(bookedSQL);
 			ResultSet rs2 = statement2.executeQuery(ifEmptysQL);
-			System.out.println("In booked jdbc 3");
 			if (rs.next() || !rs2.next()) {
 				booked = false;
 			}
 			rs.close();
-			System.out.println("In update jdbc");
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -2003,7 +2040,6 @@ public class JDBCConnector {
 			dbConnection = DriverManager.getConnection(	DB_CONNECTION, DB_USER, DB_PASSWORD);
 
 		} catch (SQLException e) {
-			System.out.println(e.getMessage());
 			e.printStackTrace();
 		}
 
